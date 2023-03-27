@@ -1,14 +1,16 @@
 from logging import _srcfile
 import cv2 as cv
+import numpy as np
 
 
 ###### Camera input here #######
-"""
+
+cam = cv.VideoCapture(0)
+
 def image_grabber():
-    return camera_input
+    return cam.read()
 
 
-"""
 
 ################################
 
@@ -16,15 +18,19 @@ def image_grabber():
 
 def motion_detector():
 
-    threshold = 20
+    threshold = 10
 
     frame_count = 0
     prev_frame = None
 
     while True:
+
         frame_count += 1
 
-        frame = image_grabber()
+        ret, frame = image_grabber()
+
+        if not ret:
+            continue
 
         processed_frame = cv.cvtColor(frame, cv.COLOR_RGB2GRAY)
 
@@ -52,7 +58,7 @@ def motion_detector():
         contours, _ = cv.findContours(image=frame_threshold, mode=cv.RETR_EXTERNAL, method=cv.CHAIN_APPROX_SIMPLE)
         
         for contour in contours:
-            if cv.contourArea(contour) < 50:
+            if cv.contourArea(contour) < 1000:
                 # too small: skip!
                 continue
             (x, y, w, h) = cv.boundingRect(contour)
@@ -62,3 +68,6 @@ def motion_detector():
 
         if (cv.waitKey(30) == 27):
             break
+
+if __name__ == "__main__":
+    motion_detector()
