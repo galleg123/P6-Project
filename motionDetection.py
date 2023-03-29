@@ -5,7 +5,9 @@ import numpy as np
 
 ###### Camera input here #######
 
-cam = cv.VideoCapture(0)
+input_video = "15FPS_720PL.mp4"
+
+cam = cv.VideoCapture(input_video)
 
 def image_grabber():
     return cam.read()
@@ -20,6 +22,8 @@ def motion_detector():
 
     threshold = 10
 
+    detected = False
+
     frame_count = 0
     prev_frame = None
 
@@ -30,7 +34,7 @@ def motion_detector():
         ret, frame = image_grabber()
 
         if not ret:
-            continue
+            break
 
         processed_frame = cv.cvtColor(frame, cv.COLOR_RGB2GRAY)
 
@@ -68,6 +72,15 @@ def motion_detector():
 
         if (cv.waitKey(30) == 27):
             break
+
+        if len(contours) > 0:
+            if not detected:
+                print("Movement detected")
+            detected = True
+        else:
+            if detected:
+                print("Movement stopped")
+            detected = False
 
 if __name__ == "__main__":
     motion_detector()
