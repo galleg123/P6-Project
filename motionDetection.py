@@ -1,4 +1,3 @@
-from logging import _srcfile
 import cv2 as cv
 import numpy as np
 
@@ -30,6 +29,8 @@ def motion_detector():
     while True:
 
         frame_count += 1
+
+        largeEnough = False # Parameter set to True if a large enough area of motion is detected
 
         ret, frame = image_grabber()
 
@@ -65,6 +66,7 @@ def motion_detector():
             if cv.contourArea(contour) < 1000:
                 # too small: skip!
                 continue
+            largeEnough = True
             (x, y, w, h) = cv.boundingRect(contour)
             cv.rectangle(img=frame, pt1=(x, y), pt2=(x + w, y + h), color=(0, 255, 0), thickness=2)
 
@@ -73,7 +75,7 @@ def motion_detector():
         if (cv.waitKey(30) == 27):
             break
 
-        if len(contours) > 0:
+        if largeEnough:
             if not detected:
                 print("Movement detected")
             detected = True
