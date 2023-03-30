@@ -22,8 +22,9 @@ class CageDetector:
 
             if not ret:
                 break
-            #resized_frame = self._resize_frame(frame)
-            processed_frame = self._preprocess_frame(frame)#(resized_frame)
+            
+            resized_frame = self._resize_frame(frame)
+            processed_frame = self._preprocess_frame(frame)
             frame_diff = cv.absdiff(src1=self.prev_frame, src2=processed_frame)
             self.prev_frame = processed_frame
 
@@ -31,11 +32,11 @@ class CageDetector:
             lines = self._get_hough_lines(edges)
 
             if lines is not None:
-                self._draw_rectangles(lines, frame)#resized_frame)
+                self._draw_rectangles(lines, frame)
 
-            cv.imshow('Motion detector', frame)#resized_frame)
+            cv.imshow('Motion detector', frame)
 
-            if cv.waitKey(1) & 0xFF == ord('q'):
+            if cv.waitKey(5) & 0xFF == ord('q'):
                 break
 
         self._cleanup()
@@ -80,7 +81,7 @@ class CageDetector:
             y1 = int(y0 + 1000 * (a))
             x2 = int(x0 - 1000 * (-b))
             y2 = int(y0 - 1000 * (a))
-            #cv.line(frame, (x1, y1), (x2, y2), (0, 0, 255), 2, cv.LINE_AA, shift=0)
+            cv.line(frame, (x1, y1), (x2, y2), (0, 0, 255), 2, cv.LINE_AA, shift=0)
             try:
                 aspect_ratio = abs(x2-x1) / abs(y2-y1)
             except:
