@@ -1,12 +1,13 @@
 import cv2 as cv
 import numpy as np
+import time
 
 
 ###### Camera input here #######
 
 input_video = "15FPS_720PL.mp4"
 
-cam = cv.VideoCapture(input_video)
+cam = cv.VideoCapture(0)
 
 def image_grabber():
     return cam.read()
@@ -20,7 +21,8 @@ def image_grabber():
 def motion_detector():
 
     threshold = 10
-
+    time_now = time.perf_counter()
+    time_last = time.perf_counter()
     detected = False
 
     frame_count = 0
@@ -63,7 +65,7 @@ def motion_detector():
         contours, _ = cv.findContours(image=frame_threshold, mode=cv.RETR_EXTERNAL, method=cv.CHAIN_APPROX_SIMPLE)
         
         for contour in contours:
-            if cv.contourArea(contour) < 1000:
+            if cv.contourArea(contour) < 5000:
                 # too small: skip!
                 continue
             largeEnough = True
@@ -72,16 +74,18 @@ def motion_detector():
 
         cv.imshow('Motion detector', frame)
 
-        if (cv.waitKey(30) == 27):
+        if (cv.waitKey(66) == 27):
             break
 
         if largeEnough:
             if not detected:
-                print("Movement detected")
+                print(f'Movement detected, there was no movement for {round(time.perf_counter()-time_last,3)} seconds.')
+                time_last = time.perf_counter()
             detected = True
         else:
             if detected:
-                print("Movement stopped")
+                print(f'Movement stopped, movement lasted for {round(time.perf_counter()-time_last,3)} seconds.')
+                time_last = time.perf_counter()
             detected = False
 
 if __name__ == "__main__":
