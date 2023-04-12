@@ -23,16 +23,8 @@ class CageDetector:
             if not ret:
                 break
             
-            resized_frame = self._resize_frame(frame)
-            processed_frame = self._preprocess_frame(frame)
-            frame_diff = cv.absdiff(src1=self.prev_frame, src2=processed_frame)
-            self.prev_frame = processed_frame
-
-            edges = self._get_edges(frame_diff)
-            lines = self._get_hough_lines(edges)
-
-            if lines is not None:
-                self._draw_rectangles(lines, frame)
+            #resized_frame = self._resize_frame(frame)
+            frame = self._square_detection(frame)
 
             cv.imshow('Motion detector', frame)
 
@@ -131,6 +123,18 @@ class CageDetector:
                 text_y = int(frame.shape[0] - text_size[1] - 10)
                 cv.putText(frame, text, (text_x, text_y), font, font_scale, (0, 255, 0), font_thickness, cv.LINE_AA)
             """
+    def _square_detection(self, frame):
+        processed_frame = self._preprocess_frame(frame)
+        frame_diff = cv.absdiff(src1=self.prev_frame, src2=processed_frame)
+        self.prev_frame = processed_frame
+
+        edges = self._get_edges(frame_diff)
+        lines = self._get_hough_lines(edges)
+
+        if lines is not None:
+            self._draw_rectangles(lines, frame)
+        return frame
+
     def _cleanup(self):
         self.cam.release()
         cv.destroyAllWindows()
