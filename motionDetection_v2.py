@@ -69,7 +69,7 @@ class motion_detector():
         frame_threshold = cv.threshold(src=frame_diff, thresh=self.threshold, maxval=1, type=cv.THRESH_BINARY)[1]
 
         # Sum of threshold must be above value to be considered motion
-        if np.sum(frame_threshold) > 200: # change this value to change the amount of pixel which have to be changed
+        if np.sum(frame_threshold)/(1920*720) > 0.005: # change this value to change the amount of pixel which have to be changed
             if self.detected==False:
                 self.detected=True
                 print(f'Detected: {self.detected}')
@@ -78,11 +78,11 @@ class motion_detector():
                 self.detected = False
                 print(f'Detected: {self.detected}')
 
-
+        #print(f'{np.sum(frame_threshold)/(1920*720)} % of area is filled')
 
         cv.imshow('Motion detector', self.frame)
 
-        if (cv.waitKey(66) == 27):
+        if (cv.waitKey(100) == 27):
             cv.destroyAllWindows()
             self.running = False
 
@@ -90,6 +90,6 @@ class motion_detector():
         
 
 if __name__ == "__main__":
-    motionDetecter = motion_detector(40)
+    motionDetecter = motion_detector(20)
 
     motionDetecter.run()
