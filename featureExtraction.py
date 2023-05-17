@@ -259,6 +259,16 @@ class FeatureExtraction:
 													 	]
 									# Run functions to extract each feature and appending it to row
 									for i, function in enumerate(feature_functions):
+										if i ==0:
+											boundingBox = function['f'](*function['a'])
+											if (0 in boundingBox) or (boundingBox[2] == row[2]) or (boundingBox[3] == row[3]):
+												for x in range(len(self.features)-1):
+													row.append(0)
+												# This is where i want a break
+												break
+											else:
+										  		row.append(boundingBox)
+										
 										if i ==1:
 											row.append(function['f'](*function['a'], row[2], row[3], pct=True))
 											actual_area = function['f'](*function['a'], row[2], row[3])
@@ -304,9 +314,8 @@ class FeatureExtraction:
 		# Wait for all processes to finish
 		for p in processes:
 		    p.join()
-		print('im here')
 
-		output = open('./featuresExtracted.csv','w')
+		output = open('./featuresExtracted_no_touchy.csv','w')
 		csv_writer = writer(output)
 		self.result_list = list(self.result_list)
 		csv_writer.writerow(self.columns)
@@ -314,14 +323,19 @@ class FeatureExtraction:
 			for row in video:
 				csv_writer.writerow(row)
 		
-		subprocess.run(["bash", "-c", "sort -t',' -k1,1n -k8,8n -k13,13n featuresExtracted.csv > featuresExtractedSorted.csv"])
-		subprocess.run(["mv", "featuresExtractedSorted.csv", "featuresExtracted.csv"])
+		subprocess.run(["bash", "-c", "sort -t',' -k1,1n -k8,8n -k13,13n featuresExtracted_no_touchy.csv > featuresExtractedSorted.csv"])
+		subprocess.run(["mv", "featuresExtractedSorted.csv", "featuresExtracted_no_touchy.csv"])
 		with open('featuresExtracted.csv', 'rt') as f:
 			reader = csv.reader(f)
 			self.dataframe = pd.DataFrame(reader)
 		self.dataframe.columns = self.dataframe.iloc[0]
 		self.dataframe = self.dataframe[1:]
+		# Check for duplicate frames, i.e. where both a cage and a person is within the frame
+		subset_cols = ['Frame','BoudingBox','Area','Circularity','Convexity','Rectangularity','Elongation','Eccentricity','Solidity']
+		self.dataframe = self.dataframe.drop_duplicates(subset=subset_cols, keep='first')
 
+		# Save the new csv file with no doubles and a ['Cage'] column
+		self.dataframe.to_csv('featuresExtracted_no_touchy_noDoubleFrames.csv',index=False)
 if __name__=="__main__":
 	FeatureExtractor = FeatureExtraction('dataset/video.json')
 	FeatureExtractor.run()
