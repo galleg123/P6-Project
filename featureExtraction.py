@@ -125,8 +125,8 @@ class FeatureExtraction:
 
 	def rectangularity(self, contour, area):
 		"""
-        Calculate the rectangularity of the contour
-        """
+		Calculate the rectangularity of the contour
+		"""
 		try:
 			rect = cv2.minAreaRect(contour)
 			rect_area = rect[1][0] * rect[1][1]
@@ -140,9 +140,9 @@ class FeatureExtraction:
 		try:
 			x, y, w, h = cv2.boundingRect(contour)
 			if w >= h:
-			    return h / w
+				return h / w
 			else:
-			    return w /h
+				return w /h
 
 		except cv2.error:
 			print("Error: Failed to compute elongation for contour")
@@ -245,6 +245,7 @@ class FeatureExtraction:
 
 								actual_area = None
 								if (len(contours) == 1) and (np.average(preprocessed_frame) != 0):
+									annotate = True
 									# Adding all feature functions to a list:
 									args = [contours[0]]
 									feature_functions = [
@@ -261,15 +262,14 @@ class FeatureExtraction:
 									for i, function in enumerate(feature_functions):
 										if i ==0:
 											boundingBox = function['f'](*function['a'])
-											if (0 in boundingBox) or (boundingBox[2] == row[2]) or (boundingBox[3] == row[3]):
-												for x in range(len(self.features)-1):
-													row.append(0)
-												# This is where i want a break
+											if ((0 in boundingBox) or (boundingBox[2] == row[2]) or (boundingBox[3] == row[3])) and (row[9] != 'cages'):
+												annotate = False
 												break
+											
 											else:
-										  		row.append(boundingBox)
+												row.append(boundingBox)
 										
-										if i ==1:
+										elif i ==1:
 											row.append(function['f'](*function['a'], row[2], row[3], pct=True))
 											actual_area = function['f'](*function['a'], row[2], row[3])
 										elif (i == 2) or (i == 4):
@@ -279,11 +279,12 @@ class FeatureExtraction:
 										elif i == 7:
 											row.append(function['f'](actual_area, mask))
 										else:
+											f = open("demofile2.txt", "a")
+											f.write(f'{i}')
+											f.close()
 											row.append(function['f'](*function['a']))
-								else:
-									for x in range(len(self.features)-1):
-										row.append(0)
-								video_annotations.append(row)
+									if annotate:
+										video_annotations.append(row)
 
 					# If there is no annotations for this category 
 					else:
@@ -313,7 +314,7 @@ class FeatureExtraction:
 
 		# Wait for all processes to finish
 		for p in processes:
-		    p.join()
+			p.join()
 
 		output = open('./featuresExtracted_no_touchy.csv','w')
 		csv_writer = writer(output)
@@ -325,7 +326,7 @@ class FeatureExtraction:
 		
 		subprocess.run(["bash", "-c", "sort -t',' -k1,1n -k8,8n -k13,13n featuresExtracted_no_touchy.csv > featuresExtractedSorted.csv"])
 		subprocess.run(["mv", "featuresExtractedSorted.csv", "featuresExtracted_no_touchy.csv"])
-		with open('featuresExtracted.csv', 'rt') as f:
+		with open('featuresExtracted_no_touchy.csv', 'rt') as f:
 			reader = csv.reader(f)
 			self.dataframe = pd.DataFrame(reader)
 		self.dataframe.columns = self.dataframe.iloc[0]
