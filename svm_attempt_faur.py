@@ -7,6 +7,7 @@ from sklearn.metrics import confusion_matrix,ConfusionMatrixDisplay
 from sklearn.decomposition import PCA
 from scipy.spatial.distance import mahalanobis
 import matplotlib.pyplot as plt
+from scipy.spatial.distance import mahalanobis
 
 # Creating a function that uses category_id to determine if a cage is present.
 def cage_detection(row):
@@ -20,17 +21,10 @@ columns = ['video_id','path','width','height','fps','total_frames','file_name','
 features = ['Area', 'Circularity', 'Convexity', 'Rectangularity', 'Elongation', 'Eccentricity', 'Solidity']
 
 # Import csv with all data
-df = pd.read_csv('featuresExtracted.csv', usecols=columns)
+df = pd.read_csv('featuresExtracted_no_touchy_noDoubleFrames.csv', usecols=columns)
 
 # Make a new cage column that applies the function to each row
 df['Cage'] = df.apply (lambda row: cage_detection(row), axis=1)
-
-# Check for duplicate frames, i.e. where both a cage and a person is within the frame
-subset_cols = ['Frame','BoudingBox','Area','Circularity','Convexity','Rectangularity','Elongation','Eccentricity','Solidity']
-df = df.drop_duplicates(subset=subset_cols, keep='first')
-
-# Save the new csv file with no doubles and a ['Cage'] column
-df.to_csv('featuresExtracted_noDoubleFrames.csv',index=False)
 
 # Make a dataframe containing all features
 X = df[features]
@@ -63,14 +57,10 @@ cm = confusion_matrix(y_test, predictions, labels=clf_svm.classes_)
 before = ConfusionMatrixDisplay(confusion_matrix=cm,display_labels=["Is not a cage","Is a cage"])
 before.plot()
 plt.savefig('before_CrossValidation.pdf')
-
+plt.clf()
 
 # Write down test attempts for the different parameter (I found these specific ones online)
-param_grid = [
-	{'C': [0.5,1,10,100],
-	'gamma': ['scale', 1, 0.1, 0.01, 0.001, 0.0001],
-	'kernel': ['rbf']},
-]
+param_grid = {'C': [0.1,1, 10, 100], 'gamma': [1,0.1,0.01,0.001],'kernel': ['rbf', 'poly', 'sigmoid']}
 
 # Do a cross validation using GridSearchCV
 optimal_params = GridSearchCV(
@@ -78,7 +68,8 @@ optimal_params = GridSearchCV(
 	param_grid,
 	cv=5,
 	scoring='accuracy',
-	verbose=1
+	verbose=1,
+	n_jobs=-1
 )
 
 # Fit the parameters using GridSearchCV
@@ -88,9 +79,23 @@ optimal_params.fit(X_train_scaled, y_train)
 print(optimal_params.best_params_)
 
 # Try making a SVC with the new parameters provided by the CV
-clf_svm = SVC(random_state=42, C=10, gamma=1)
+clf_svm = SVC(random_state=42, C=optimal_params.best_params_['C'], gamma=optimal_params.best_params_['gamma'], kernel=optimal_params.best_params_['kernel'])
 clf_svm.fit(X_train_scaled, y_train)
 
+support_vectors = clf_svm.support_vectors_
+mean_vector = np.mean(support_vectors, axis=0)
+covariance_matrix = np.cov(support_vectors.T)
+
+mahalanobis_distances = []
+for sv in support_vectors:
+    distance = mahalanobis(sv, mean_vector, np.linalg.inv(covariance_matrix))
+    mahalanobis_distances.append(distance)
+
+plt.plot(mahalanobis_distances)
+plt.xlabel('Support Vector Index')
+plt.ylabel('Mahalanobis Distance')
+plt.savefig('mahalanobis_distances.pdf')
+plt.clf()
 predictions = clf_svm.predict(X_test_scaled)
 cm = confusion_matrix(y_test, predictions, labels=clf_svm.classes_)
 
@@ -98,3 +103,4 @@ cm = confusion_matrix(y_test, predictions, labels=clf_svm.classes_)
 after = ConfusionMatrixDisplay(confusion_matrix=cm,display_labels=["Is not a cage","Is a cage"])
 after.plot()
 plt.savefig('after_CrossValidation.pdf')
+plt.clf()
