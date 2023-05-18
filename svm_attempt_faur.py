@@ -67,7 +67,7 @@ optimal_params = GridSearchCV(
 	SVC(),
 	param_grid,
 	cv=5,
-	scoring='accuracy',
+	scoring='f1',
 	verbose=1,
 	n_jobs=-1
 )
