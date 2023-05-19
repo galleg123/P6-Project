@@ -21,7 +21,7 @@ columns = ['video_id','path','width','height','fps','total_frames','file_name','
 features = ['Area', 'Circularity', 'Convexity', 'Rectangularity', 'Elongation', 'Eccentricity', 'Solidity']
 
 # Import csv with all data
-df = pd.read_csv('featuresExtracted_no_touchy_noDoubleFrames.csv', usecols=columns)
+df = pd.read_csv('featureExtracted_noEdge_noDoubtleFrames.csv', usecols=columns)
 
 # Make a new cage column that applies the function to each row
 df['Cage'] = df.apply (lambda row: cage_detection(row), axis=1)
@@ -60,7 +60,12 @@ plt.savefig('before_CrossValidation.pdf')
 plt.clf()
 
 # Write down test attempts for the different parameter (I found these specific ones online)
-param_grid = {'C': [0.1,1, 10, 100], 'gamma': [1,0.1,0.01,0.001],'kernel': ['rbf', 'poly', 'sigmoid']}
+param_grid = [
+	{'C': [0.5,1,10,100],
+	'gamma': ['scale', 1, 0.1, 0.01, 0.001, 0.0001],
+	'kernel': ['rbf', 'poly', 'sigmoid']},
+]
+
 
 # Do a cross validation using GridSearchCV
 optimal_params = GridSearchCV(
