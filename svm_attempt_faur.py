@@ -84,7 +84,11 @@ optimal_params.fit(X_train_scaled, y_train)
 print(optimal_params.best_params_)
 
 # Try making a SVC with the new parameters provided by the CV
+<<<<<<< HEAD
 clf_svm = SVC(random_state=42, C=optimal_params.best_params_['C'], gamma=optimal_params.best_params_['gamma'], kernel=optimal_params.best_params_['kernel'])
+=======
+clf_svm = SVC(random_state=42, C=optimal_params.best_params_['C'], gamma=optimal_params.best_params_['gamma'])
+>>>>>>> main
 clf_svm.fit(X_train_scaled, y_train)
 
 support_vectors = clf_svm.support_vectors_
