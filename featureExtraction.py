@@ -21,7 +21,7 @@ class FeatureExtraction:
 		self.annotations = []
 		self.video_columns = []
 		self.category_columns = []
-		self.features = ["Frame", "BoudingBox","Area","Circularity","Convexity","Rectangularity", "Elongation","Eccentricity","Solidity"]
+		self.features = ["pass_id","Frame", "BoudingBox","Area","Circularity","Convexity","Rectangularity", "Elongation","Eccentricity","Solidity"]
 		self.columns = self.video_columns+self.category_columns+self.features
 		self.dataframe = None
 		self.num_processes = mp.cpu_count()
@@ -200,6 +200,7 @@ class FeatureExtraction:
 			if key == 'catagories':
 				
 				# For annotations for each category
+				pass_id_counter = 0
 				for i, category in enumerate(value):
 					
 					# Check if there is any annotations for this category
@@ -221,6 +222,7 @@ class FeatureExtraction:
 								# Create row prefilled with video and category data
 								row = video_data+category_data
 								
+								row.append(pass_id_counter)
 								# Append the frame we are working on
 								row.append(frame)
 
@@ -284,8 +286,9 @@ class FeatureExtraction:
 											f.close()
 											row.append(function['f'](*function['a']))
 									if annotate:
+										print(row)
 										video_annotations.append(row)
-
+						pass_id_counter += 1
 					# If there is no annotations for this category 
 					else:
 						category_dict = next(item for item in self.categories if item["id"] == i)

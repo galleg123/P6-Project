@@ -21,7 +21,7 @@ columns = ['video_id','path','width','height','fps','total_frames','file_name','
 features = ['Area', 'Circularity', 'Convexity', 'Rectangularity', 'Elongation', 'Eccentricity', 'Solidity']
 
 # Import csv with all data
-df = pd.read_csv('featureExtracted_noEdge_noDoubtleFrames.csv', usecols=columns)
+df = pd.read_csv('featureExtracted_noEdge_noDoubleFrames.csv', usecols=columns)
 
 # Make a new cage column that applies the function to each row
 df['Cage'] = df.apply (lambda row: cage_detection(row), axis=1)
@@ -63,16 +63,23 @@ plt.clf()
 param_grid = [
 	{'C': [0.5,1,10,100],
 	'gamma': ['scale', 1, 0.1, 0.01, 0.001, 0.0001],
-	'kernel': ['rbf', 'poly', 'sigmoid']},
+	'kernel': ['rbf', 'poly', 'sigmoid'],
+	'class_weight':[{0: 1, 1:w} for w in [1, 2, 3, 4, 5]]},
+
 ]
+from sklearn.metrics import make_scorer,fbeta_score
+def f2_func(y_true, y_pred):
+    f2_score = fbeta_score(y_true, y_pred, beta=2)
+    return f2_score
 
-
+def my_f2_scorer():
+    return make_scorer(f2_func)
 # Do a cross validation using GridSearchCV
 optimal_params = GridSearchCV(
 	SVC(),
 	param_grid,
 	cv=5,
-	scoring='f1',
+	scoring=my_f2_scorer(),
 	verbose=1,
 	n_jobs=-1
 )
@@ -84,11 +91,7 @@ optimal_params.fit(X_train_scaled, y_train)
 print(optimal_params.best_params_)
 
 # Try making a SVC with the new parameters provided by the CV
-<<<<<<< HEAD
 clf_svm = SVC(random_state=42, C=optimal_params.best_params_['C'], gamma=optimal_params.best_params_['gamma'], kernel=optimal_params.best_params_['kernel'])
-=======
-clf_svm = SVC(random_state=42, C=optimal_params.best_params_['C'], gamma=optimal_params.best_params_['gamma'])
->>>>>>> main
 clf_svm.fit(X_train_scaled, y_train)
 
 support_vectors = clf_svm.support_vectors_
