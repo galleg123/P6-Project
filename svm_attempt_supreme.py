@@ -17,11 +17,11 @@ def cage_detection(row):
 		return 0
 
 # Defining the different columns and features
-columns = ['video_id','path','width','height','fps','total_frames','file_name','category_id','category_name','supercategory','color','metadata','Frame','BoudingBox','Area','Circularity','Convexity','Rectangularity','Elongation','Eccentricity','Solidity']
+columns = ['video_id','path','width','height','fps','total_frames','file_name','category_id','category_name','supercategory','color','metadata', 'pass_id','Frame','BoudingBox','Area','Circularity','Convexity','Rectangularity','Elongation','Eccentricity','Solidity']
 features = ['Area', 'Circularity', 'Convexity', 'Rectangularity', 'Elongation', 'Eccentricity', 'Solidity']
 
 # Import csv with all data
-df = pd.read_csv('featureExtracted_noEdge_noDoubleFrames.csv', usecols=columns)
+df = pd.read_csv('featuresExtracted_no_touchy_noDoubleFrames.csv', usecols=columns)
 
 # Make a new cage column that applies the function to each row
 df['Cage'] = df.apply (lambda row: cage_detection(row), axis=1)
@@ -104,7 +104,10 @@ plt.ylabel('Mahalanobis Distance')
 plt.savefig('mahalanobis_distances.pdf')
 plt.clf()
 '''
+# Uses the best estimator from grid search to predict test data
 clf_svm = optimal_params.best_estimator_
+#clf_svm = SVC(random_state=42, C=1, class_weight={0:1, 1:3}, gamma=1, kernel="rbf")
+#clf_svm.fit(X_train_scaled, y_train)
 predictions = clf_svm.predict(X_test_scaled)
 cm = confusion_matrix(y_test, predictions, labels=clf_svm.classes_)
 
@@ -115,3 +118,21 @@ plt.savefig('after_CrossValidation.pdf')
 plt.savefig('after_CrossValidation.png')
 plt.clf()
 
+# Groups by passing, and then computes confusion matrix of that
+pass_test = y_test.copy()
+frame_id = pd.DataFrame([str(df["video_id"][i]) + "-" + str(df["pass_id"][i]) for i in range(len(df))], columns=["frame_id"])
+y_cat_df = pd.concat([pass_test, frame_id], axis=1).dropna()
+y_grouped_df = y_cat_df.groupby(by = ["frame_id"]).sum()
+y_test_pass = y_grouped_df.divide(y_grouped_df).fillna(0)
+
+pass_pred = pd.DataFrame(np.array([pass_test.index,predictions]).transpose(), columns=["index", "cage"]).set_index("index")
+pred_cat_df = pd.concat([pass_pred, frame_id], axis=1).dropna()
+pred_grouped_df = pred_cat_df.groupby(by = ["frame_id"]).sum()
+pred_test_pass = pred_grouped_df.divide(pred_grouped_df).fillna(0)
+
+cm = confusion_matrix(y_test_pass, pred_test_pass, labels=clf_svm.classes_)
+passCM = ConfusionMatrixDisplay(confusion_matrix=cm,display_labels=["Is not a cage","Is a cage"])
+passCM.plot()
+plt.savefig('pass_CrossValidation.pdf')
+plt.savefig('pass_CrossValidation.png')
+plt.clf()
