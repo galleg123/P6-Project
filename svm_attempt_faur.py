@@ -39,7 +39,7 @@ X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=42)
 X_train_scaled = scale(X_train)
 X_test_scaled = scale(X_test)
 
-
+"""
 # Create a Support Vector Classifier (SVC) with preset parameters
 clf_svm = SVC(random_state=42)
 
@@ -58,18 +58,19 @@ before = ConfusionMatrixDisplay(confusion_matrix=cm,display_labels=["Is not a ca
 before.plot()
 plt.savefig('before_CrossValidation.pdf')
 plt.clf()
-
+"""
 # Write down test attempts for the different parameter (I found these specific ones online)
 param_grid = [
-	{'C': [0.5,1,10,100],
-	'gamma': ['scale', 1, 0.1, 0.01, 0.001, 0.0001],
-	'kernel': ['rbf', 'poly', 'sigmoid'],
+	{'C': [1],
+	'gamma': ['scale', 1],
+	'kernel': ['rbf'],
 	'class_weight':[{0: 1, 1:w} for w in [1, 2, 3, 4, 5]]},
 
 ]
+
 from sklearn.metrics import make_scorer,fbeta_score
 def f2_func(y_true, y_pred):
-    f2_score = fbeta_score(y_true, y_pred, beta=2)
+    f2_score = fbeta_score(y_true, y_pred, beta=5)
     return f2_score
 
 def my_f2_scorer():
@@ -91,7 +92,8 @@ optimal_params.fit(X_train_scaled, y_train)
 print(optimal_params.best_params_)
 
 # Try making a SVC with the new parameters provided by the CV
-clf_svm = SVC(random_state=42, C=optimal_params.best_params_['C'], gamma=optimal_params.best_params_['gamma'], kernel=optimal_params.best_params_['kernel'])
+clf_svm = SVC(random_state=42, C=optimal_params.best_params_['C'], gamma=optimal_params.best_params_['gamma'], kernel=optimal_params.best_params_['kernel'], class_weight=optimal_params.best_params_['class_weight'])
+#clf_svm = SVC(random_state=42, C=, gamma=1, kernel='rbf')
 clf_svm.fit(X_train_scaled, y_train)
 
 support_vectors = clf_svm.support_vectors_
