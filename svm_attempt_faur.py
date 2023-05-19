@@ -20,17 +20,10 @@ columns = ['video_id','path','width','height','fps','total_frames','file_name','
 features = ['Area', 'Circularity', 'Convexity', 'Rectangularity', 'Elongation', 'Eccentricity', 'Solidity']
 
 # Import csv with all data
-df = pd.read_csv('featuresExtracted.csv', usecols=columns)
+df = pd.read_csv('featureExtracted_noEdge_noDoubtleFrames.csv', usecols=columns)
 
 # Make a new cage column that applies the function to each row
 df['Cage'] = df.apply (lambda row: cage_detection(row), axis=1)
-
-# Check for duplicate frames, i.e. where both a cage and a person is within the frame
-subset_cols = ['Frame','BoudingBox','Area','Circularity','Convexity','Rectangularity','Elongation','Eccentricity','Solidity']
-df = df.drop_duplicates(subset=subset_cols, keep='first')
-
-# Save the new csv file with no doubles and a ['Cage'] column
-df.to_csv('featuresExtracted_noDoubleFrames.csv',index=False)
 
 # Make a dataframe containing all features
 X = df[features]
@@ -69,7 +62,7 @@ plt.savefig('before_CrossValidation.pdf')
 param_grid = [
 	{'C': [0.5,1,10,100],
 	'gamma': ['scale', 1, 0.1, 0.01, 0.001, 0.0001],
-	'kernel': ['rbf']},
+	'kernel': ['rbf', 'poly', 'sigmoid']},
 ]
 
 # Do a cross validation using GridSearchCV
@@ -77,8 +70,9 @@ optimal_params = GridSearchCV(
 	SVC(),
 	param_grid,
 	cv=5,
-	scoring='accuracy',
-	verbose=1
+	scoring='f1',
+	verbose=1,
+	n_jobs=-1
 )
 
 # Fit the parameters using GridSearchCV
@@ -88,7 +82,7 @@ optimal_params.fit(X_train_scaled, y_train)
 print(optimal_params.best_params_)
 
 # Try making a SVC with the new parameters provided by the CV
-clf_svm = SVC(random_state=42, C=10, gamma=1)
+clf_svm = SVC(random_state=42, C=optimal_params.best_params_['C'], gamma=optimal_params.best_params_['gamma'])
 clf_svm.fit(X_train_scaled, y_train)
 
 predictions = clf_svm.predict(X_test_scaled)
