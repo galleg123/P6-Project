@@ -2,18 +2,20 @@ import cv2
 import numpy as np
 import cProfile
 import pstats
+from dataset.preprocessing import Preprocessing
 
 np.seterr(divide='ignore', invalid='ignore')
 
 
 class CageDetector:
-    def __init__(self, input_video_path, threshold=12.5, min_aspect_ratio=0.5):
+    def __init__(self, input_video_path, detect_cage=False, threshold=12.5, min_aspect_ratio=0.5):
         self.input_video_path = input_video_path
         self.threshold = threshold
         self.min_aspect_ratio = min_aspect_ratio
         self.frame_count = 0
         self.new_width = 640
         self.new_height = 480
+        self.detect_cage = detect_cage
 
     def run(self):
         self.prev_frame = None
@@ -30,27 +32,32 @@ class CageDetector:
             if not ret:
                 break
 
-            #resized_frame = self.resize_frame(frame)
+            resized_frame = self.resize_frame(frame)
             processed_frame = self.preprocess_frame(frame)
             frame_diff = cv2.absdiff(src1=self.prev_frame, src2=processed_frame)
+            frame_diff = cv2.multiply(frame_diff, 0.45)
+            prev_frame = self.prev_frame
             self.prev_frame = processed_frame
 
             edges = self.get_edges(frame_diff)
             blob_img, mask = self.blob_detection(edges)
             blob_img_cleaned = self.remove_singular_pixels(blob_img)
             blob_img_classified, params_dicts = self.blob_classifier(blob_img_cleaned, mask)
+            
+            # Uncomment this section to see if a cage is detected
+            if params_dicts and self.detect_cage:
+                blob_img_classified = self._detected_cage(blob_img_classified, params_dicts)
+                frame = self._detected_cage(frame, params_dicts)
 
-            if params_dicts:
-                blob_img_classified = self.detected_cage(blob_img_classified, params_dicts)
-                frame = self.detected_cage(frame, params_dicts)
-            # cv2.imshow('Frame Difference', frame_diff)
-            # cv2.imshow('Mask', mask)
-            # cv2.imshow('Edge Definition', edges)
+            cv2.imshow('Last Frame Processed', prev_frame)
+            cv2.imshow('Frame Difference', frame_diff)
+            cv2.imshow('Edge Definition', edges)
+            cv2.imshow('Blob', blob_img_cleaned)
             cv2.imshow('Blob Classifier', blob_img_classified)
-            # cv2.imshow('New Frame Processed', processed_frame)
-            # cv2.imshow('Last Frame Processed', self.prev_frame)
+            cv2.imshow('New Frame Processed', processed_frame)
             cv2.imshow('Original', frame)
-            key = cv2.waitKey(10)
+
+            key = cv2.waitKey(100)
             if key == ord('q'):
                 break
             # check if 'p' was pressed and wait for a 'b' press
@@ -76,7 +83,17 @@ class CageDetector:
 
                         print('* Rewind to frame #' + str(prev_frame))
                         self.cam.set(cv2.CAP_PROP_POS_FRAMES, prev_frame)
-
+                    # check if 'b' is pressed and rewind video to the previous frame, but do not play
+                    if (key & 0xFF == ord('w')):
+                        cur_frame_number = self.cam.get(cv2.CAP_PROP_POS_FRAMES)
+                        print('* At frame #' + str(cur_frame_number))
+                        cv2.imwrite('project_img/Last_Frame_Processed.png', prev_frame)
+                        cv2.imwrite('project_img/Frame_Difference.png', frame_diff)
+                        cv2.imwrite('project_img/Edge_Definition.png', edges)
+                        cv2.imwrite('project_img/Blob.png', blob_img_cleaned)
+                        cv2.imwrite('project_img/Blob_Classifier.png', blob_img_classified)
+                        cv2.imwrite('project_img/New_Frame_Processed.png', processed_frame)
+                        cv2.imwrite('project_img/Original_Frame.png', frame)
                     if key == ord('q'):
                         break
         # Stop profiling
@@ -109,13 +126,13 @@ class CageDetector:
 
     def remove_singular_pixels(self, img):
         # Create a kernel for dilation
-        kernel = np.ones((100, 100), np.uint8)
-
+        kernel = np.ones((80, 80), np.uint8)
+        kernel1 = np.ones((10, 10), np.uint8)
         # Dilate the image to connect neighboring pixels
         dilated = cv2.dilate(img, kernel)
 
         # Erode the dilated image to remove single pixels
-        eroded = cv2.erode(dilated, kernel)
+        eroded = cv2.erode(dilated, kernel1)
 
         # Apply morphological opening operation
         opened_img = cv2.morphologyEx(eroded, cv2.MORPH_OPEN, kernel)
@@ -273,16 +290,21 @@ class CageDetector:
             # Calculate the solidity of the contour
             solidity = self.solidity_calc(area, mask)
 
-            if (area > 120000 and rectangularity > 0.7) and (area > 120000 and convexity > 0.9):
-                cage = True
+            # Checking if it should detect cage and create a dictionary of the parameters
+            if self.detect_cage:
+                if (area > 120000 and rectangularity > 0.7) and (area > 120000 and convexity > 0.9):
+                    cage = True
+                else:
+                    cage = False
+                params_dict = {"Area": area, "Circularity": circularity,
+                               "Eccentricity": eccentricity, "Elongation": elongation,
+                               "Convexity": convexity, "Rectangularity": rectangularity, 
+                               "Solidity": solidity, "Cage": cage}
             else:
-                cage = False
-
-            # Create a dictionary of the parameters
-            params_dict = {"Area": area, "Circularity": circularity,
-                           "Eccentricity": eccentricity, "Elongation": elongation,
-                           "Convexity": convexity, "Rectangularity": rectangularity, 
-                           "Solidity": solidity, "Cage": cage, }
+                params_dict = {"Area": area, "Circularity": circularity,
+                               "Eccentricity": eccentricity, "Elongation": elongation,
+                               "Convexity": convexity, "Rectangularity": rectangularity, 
+                               "Solidity": solidity}
             
             # Draw the contour on the blob image
             cv2.drawContours(blob_img_copy, [contour], -1, (255, 255, 255), thickness=-1)
@@ -339,7 +361,7 @@ class CageDetector:
         text_y = int(frame.shape[0] - text_size[1] - 10)
         cv2.putText(frame, text, (text_x, text_y), font, font_scale, (0, 0, 255), font_thickness, cv2.LINE_AA)
 
-        if any(sub['Cage'] for sub in params_dicts):
+        if any(sub['Rectangle'] for sub in params_dicts):
             cv2.rectangle(frame, (int(frame.shape[1] / 2), 0), (int(frame.shape[1] / 2 + 100), 100), (0, 255, 0), -1)
 
             text = "Rolling cage detected"
@@ -358,5 +380,6 @@ class CageDetector:
 
 
 if __name__ == "__main__":
-    input_video_path = 'test_day/cages/cage1_grey_covered.avi'
+    input_video_path = 'dataset/cages/cage1_red_empty.avi'
+    #input_video_path = 'dataset/people/people_with_hvis_control.avi'
     CageDetector(input_video_path).run()
