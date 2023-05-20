@@ -4,9 +4,9 @@ import numpy as np
 
 class motion_detector:
 
-    def __init__(self, prev_frame, threshold):
+    def __init__(self, first_frame, threshold):
         self.threshold = threshold
-        self.prev_frame = prev_frame
+        self.prev_frame = first_frame
         self.prev_frame = cv2.cvtColor(self.prev_frame, cv2.COLOR_RGB2GRAY)
 
     def compare_frames(self, new_frame):
