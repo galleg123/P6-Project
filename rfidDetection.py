@@ -4,7 +4,7 @@ from classes.motionDetection_v2 import motion_detector
 from classes.cageDetection import cage_detector
 
 if __name__ == "__main__":
-  input_video = 'dataset/cages/cage1_red_empty.avi'
+  input_video = 'cage1_red_empty.avi'
   camera = cv2.VideoCapture(input_video)
   first = True
   cageDetector = cage_detector()

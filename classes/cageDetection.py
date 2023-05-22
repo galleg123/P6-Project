@@ -2,7 +2,6 @@ import cv2
 import numpy as np
 import cProfile
 import pstats
-from dataset.preprocessing import Preprocessing
 
 np.seterr(divide='ignore', invalid='ignore')
 
@@ -17,6 +16,8 @@ class cage_detector:
         
 
     def detect_cage(self, motion, frame):
+        pr = cProfile.Profile()
+        pr.enable()
         if self.performance:
             resized_frame = self.resize_frame(motion)
         edges = self.get_edges(motion)
@@ -27,7 +28,12 @@ class cage_detector:
         if params_dicts and self.testing:
             blob_img_classified = self.detected_cage(blob_img_classified, params_dicts)
             frame = self.detected_cage(frame, params_dicts)
-
+        pr.disable()
+        # Print profiling stats
+        ps = pstats.Stats(pr)
+        ps.sort_stats(pstats.SortKey.TIME)
+        ps.print_stats(10)
+        
         return self.cage, blob_img_classified
 
     def resize_frame(self, frame):
