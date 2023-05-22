@@ -3,6 +3,7 @@ import numpy as np
 import cProfile
 import pstats
 
+
 np.seterr(divide='ignore', invalid='ignore')
 
 
@@ -99,87 +100,68 @@ class cage_detector:
         return threshold_value
 
     def circularity_calc(self, contour, area):
-        """
-        Calculate the circularity of the contour
-        """
-        perimeter = cv2.arcLength(contour, True)
-        if perimeter != 0:
+        """Calculate the circularity of the contour"""
+        try:
+            perimeter = cv2.arcLength(contour, True)
             return (2 * np.sqrt(np.pi * area)) / perimeter
-        else:
+        except cv2.error:
+            print("Error: Failed to compute circularity for contour")
             return None
 
-    def solidity_calc(self, area, mask):
-        """
-        Calculate the solidity of the contour
-        """
-        if area > 0:
-            indices = np.transpose(np.nonzero(mask))
-            if indices.size > 0:
-                try:
-                    hull = cv2.convexHull(indices)
-                    if len(hull) > 0:
-                        hull_area = cv2.contourArea(hull)
-                        return area / hull_area
-                except cv2.error:
-                    pass
-        return None
-
-    def convexity_calc(self, contour, mask):
-        """
-        Calculate the convexity of the contour
-        """
+    def convexity_calc(self, contour):
+        """Calculate the convexity of the contour"""
         try:
             perimeter = cv2.arcLength(contour, True)
             hull = cv2.convexHull(contour)
             hull_perimeter = cv2.arcLength(hull, True)
             return hull_perimeter / perimeter
         except cv2.error:
+            print("Error: Failed to compute convexity for contour")
             return None
 
-    def rectangularity_calc(self, contour, area):
-        """
-        Calculate the rectangularity of the contour
-        """
+    def elongation_calc(self, contour):
+        """Calculate the elongation of a contour"""
+        try:
+            x, y, w, h = cv2.boundingRect(contour)
+            if w >= h:
+                return h / w
+            else:
+                return w / h
+        except cv2.error:
+            print("Error: Failed to compute elongation for contour")
+            return None
+
+    def eccentricity_calc(self, contour):
+        """Calculate the eccentricity of a contour"""
+        try:
+            (x, y), (a, b), angle = cv2.fitEllipse(contour)
+            if a >= b:
+                return np.sqrt(1 - (b / a) ** 2)
+            else:
+                return np.sqrt(1 - (a / b) ** 2)
+        except cv2.error:
+            print("Error: Failed to compute eccentricity for contour")
+            return None
+
+    def solidity_calc(self, contour, area):
+        """Calculate the solidity of the contour"""
+        try:
+            hull = cv2.convexHull(contour)
+            hull_area = cv2.contourArea(hull)
+            return area / hull_area
+        except cv2.error:
+            print("Error: Failed to compute solidity for contour")
+            return None
+
+    def rectangularity_rotate_calc(self, contour, area):
+        """Calculate the rectangularity of the contour"""
         try:
             rect = cv2.minAreaRect(contour)
             rect_area = rect[1][0] * rect[1][1]
             rectangularity = area / rect_area
             return rectangularity
         except cv2.error:
-            return None
-
-    def elongation_calc(self, contour):
-        """
-        Calculate the elongation of a contour
-        """
-        try:
-            x, y, w, h = cv2.boundingRect(contour)
-            if w >= h:
-                return h / w
-            else:
-                return w /h
-
-        except cv2.error:
-            #print("Error: Failed to compute elongation for contour")
-            return None
-
-
-    def eccentricity_calc(self, contour):
-        """
-        Calculate the eccentricity of a contour
-        """
-
-        try:
-            (x, y), (a, b), angle = cv2.fitEllipse(contour)
-            if a >= b:
-                return np.sqrt(1 - (b / a) ** 2)
-                #return b / a
-            else:
-                return np.sqrt(1 - (a / b) ** 2)
-                #return a / b
-
-        except cv2.error:
-            #print("Error: Failed to compute eccentricity for contour")
+            print("Error: Failed to compute rectangularity for contour")
             return None
 
     def blob_classifier(self, blob_img, mask, font=cv2.FONT_HERSHEY_SIMPLEX):
@@ -213,13 +195,13 @@ class cage_detector:
             elongation = self.elongation_calc(contour)
 
             # Calculate the convexity of the contour
-            convexity = self.convexity_calc(contour, mask)
+            convexity = self.convexity_calc(contour)
 
             # Calculate the rectangularity of the contour
-            rectangularity = self.rectangularity_calc(contour, area)
+            rectangularity = self.rectangularity_rotate_calc(contour, area)
 
             # Calculate the solidity of the contour
-            solidity = self.solidity_calc(area, mask)
+            solidity = self.solidity_calc(contour, area)
 
             # Checking if it should detect cage and create a dictionary of the parameters
             if self.testing:
@@ -312,4 +294,3 @@ class cage_detector:
 if __name__ == "__main__":
     input_video_path = 'dataset/cages/cage1_red_empty.avi'
     #input_video_path = 'dataset/people/people_with_hvis_control.avi'
-    CageDetector(input_video_path).run()
