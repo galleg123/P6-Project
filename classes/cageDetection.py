@@ -3,18 +3,16 @@ import numpy as np
 import cProfile
 import pstats
 
-
 np.seterr(divide='ignore', invalid='ignore')
 
 
 class cage_detector:
     def __init__(self, testing=True, performance=False):
-        self.testing = testing 
+        self.testing = testing
         self.performance = performance
         self.new_width = 640
         self.new_height = 480
         self.cage = False
-        
 
     def detect_cage(self, motion, frame):
         pr = cProfile.Profile()
@@ -24,7 +22,7 @@ class cage_detector:
         edges = self.get_edges(motion)
         blob_img, mask = self.blob_detection(edges)
         blob_img_classified, params_dicts = self.blob_classifier(blob_img, mask)
-        
+
         # Uncomment this section to see if a cage is detected
         if params_dicts and self.testing:
             blob_img_classified = self.detected_cage(blob_img_classified, params_dicts)
@@ -34,7 +32,7 @@ class cage_detector:
         ps = pstats.Stats(pr)
         ps.sort_stats(pstats.SortKey.TIME)
         ps.print_stats(10)
-        
+
         return self.cage, blob_img_classified
 
     def resize_frame(self, frame):
@@ -59,7 +57,7 @@ class cage_detector:
         # Create a kernel for dilation
         kernel = np.ones((80, 80), np.uint8)
         kernel1 = np.ones((10, 10), np.uint8)
-        
+
         # Dilate the image to connect neighboring pixels
         dilated = cv2.dilate(img, kernel)
 
@@ -108,11 +106,11 @@ class cage_detector:
             print("Error: Failed to compute circularity for contour")
             return None
 
-    def convexity_calc(self, contour):
+    def convexity_calc(self, contour, hull):
         """Calculate the convexity of the contour"""
         try:
             perimeter = cv2.arcLength(contour, True)
-            hull = cv2.convexHull(contour)
+            #hull = cv2.convexHull(contour)
             hull_perimeter = cv2.arcLength(hull, True)
             return hull_perimeter / perimeter
         except cv2.error:
@@ -143,10 +141,10 @@ class cage_detector:
             print("Error: Failed to compute eccentricity for contour")
             return None
 
-    def solidity_calc(self, contour, area):
+    def solidity_calc(self, contour, area, hull):
         """Calculate the solidity of the contour"""
         try:
-            hull = cv2.convexHull(contour)
+            #hull = cv2.convexHull(contour)
             hull_area = cv2.contourArea(hull)
             return area / hull_area
         except cv2.error:
@@ -185,6 +183,9 @@ class cage_detector:
             # Calculate the area of the contour
             area = cv2.contourArea(contour)
 
+            # Calculate the convexhull of the contour
+            hull = cv2.convexHull(contour)
+
             # Calculate the circularity of the contour
             circularity = self.circularity_calc(contour, area)
 
@@ -195,30 +196,30 @@ class cage_detector:
             elongation = self.elongation_calc(contour)
 
             # Calculate the convexity of the contour
-            convexity = self.convexity_calc(contour)
+            convexity = self.convexity_calc(contour, hull)
 
             # Calculate the rectangularity of the contour
             rectangularity = self.rectangularity_rotate_calc(contour, area)
 
             # Calculate the solidity of the contour
-            solidity = self.solidity_calc(contour, area)
+            solidity = self.solidity_calc(contour, area, hull)
 
             # Checking if it should detect cage and create a dictionary of the parameters
             if self.testing:
-                # Insert trained model here: 
+                # Insert trained model here:
                 if (area > 120000 and rectangularity > 0.7) and (area > 120000 and convexity > 0.9):
                     self.cage = True
 
                 params_dict = {"Area": area, "Circularity": circularity,
                                "Eccentricity": eccentricity, "Elongation": elongation,
-                               "Convexity": convexity, "Rectangularity": rectangularity, 
+                               "Convexity": convexity, "Rectangularity": rectangularity,
                                "Solidity": solidity, "Cage": self.cage}
             else:
                 params_dict = {"Area": area, "Circularity": circularity,
                                "Eccentricity": eccentricity, "Elongation": elongation,
-                               "Convexity": convexity, "Rectangularity": rectangularity, 
+                               "Convexity": convexity, "Rectangularity": rectangularity,
                                "Solidity": solidity}
-            
+
             # Draw the contour on the blob image
             cv2.drawContours(blob_img_copy, [contour], -1, (255, 255, 255), thickness=-1)
             # Convert the grayscale image to RGB
@@ -293,4 +294,4 @@ class cage_detector:
 
 if __name__ == "__main__":
     input_video_path = 'dataset/cages/cage1_red_empty.avi'
-    #input_video_path = 'dataset/people/people_with_hvis_control.avi'
+    # input_video_path = 'dataset/people/people_with_hvis_control.avi'
