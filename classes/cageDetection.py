@@ -12,11 +12,11 @@ class cage_detector:
         self.performance = performance
         self.new_width = 640
         self.new_height = 480
-        self.cage = False
 
     def detect_cage(self, motion, frame):
         pr = cProfile.Profile()
         pr.enable()
+        self.cage = False
         if self.performance:
             resized_frame = self.resize_frame(motion)
         edges = self.get_edges(motion)
