@@ -179,7 +179,20 @@ class cage_detector:
 
         params_dicts = []
         # Loop through each contour and calculate the parameters
-        for i, contour in enumerate(contours):
+
+        # Do a area calculation on all contours
+        size_check = []
+        for contour in contours:
+            size_check.append(cv2.contourArea(contour))
+
+        # While there is more than 1 contour, remove smallest area
+        while len(contours)>1:
+
+            min_index = size_check.index(min(size_check))
+            size_check.pop(min_index)
+            contours = tuple([x for i, x in enumerate(contours) if i != min_index])
+        if (len(contours) == 1) and (np.average(blob_img) != 0):
+            contour = contours[0]
             # Calculate the area of the contour
             area = cv2.contourArea(contour)
 
@@ -231,19 +244,18 @@ class cage_detector:
             h = max(h, 50)  # increase the height to 50 pixels
             cx, cy = x + w // 2, y + h // 2
             collision = False
-            for j in range(i):
-                if text_positions and j < len(text_positions):
-                    x2, y2, w2, h2 = text_positions[j]
-                    if cx < x2 + w2 and cx + w // 2 > x2 and cy < y2 + h2 and cy + h // 2 > y2:
-                        collision = True
-                        break
+        
+            if text_positions and 0 < len(text_positions):
+                x2, y2, w2, h2 = text_positions[j]
+                if cx < x2 + w2 and cx + w // 2 > x2 and cy < y2 + h2 and cy + h // 2 > y2:
+                    collision = True
 
             # If there is no collision, add the text position to the list
             if not collision:
                 text_positions.append((cx - w // 2, cy - h // 2, w, h))
 
                 # Draw the text on the blob image
-                cv2.putText(blob_img_copy, f"{i + 1}", (cx, cy - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 128, 0), 1)
+                cv2.putText(blob_img_copy, f"{0 + 1}", (cx, cy - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 128, 0), 1)
                 for j, param in enumerate(params):
                     if param in params_dict:
                         text = params_dict[param]

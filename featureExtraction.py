@@ -25,7 +25,6 @@ class FeatureExtraction:
 		self.columns = self.video_columns+self.category_columns+self.features
 		self.dataframe = None
 		self.num_processes = mp.cpu_count()
-		self.result_queue = mp.Queue()
 		self.result_list = mp.Manager().list()
 		self.lock = mp.Lock()
 		self.semaphore = mp.Semaphore(self.num_processes)
@@ -281,9 +280,6 @@ class FeatureExtraction:
 										elif i == 7:
 											row.append(function['f'](actual_area, mask))
 										else:
-											f = open("demofile2.txt", "a")
-											f.write(f'{i}')
-											f.close()
 											row.append(function['f'](*function['a']))
 									if annotate:
 										print(row)
@@ -304,9 +300,6 @@ class FeatureExtraction:
 
 	def extractFeatures(self):
 
-		# create a shared memory array to store the results
-		result_array = mp.RawArray('i', len(self.annotations))
-		
 		# create a process for each video
 		processes = []
 
