@@ -287,7 +287,7 @@ if __name__ == "__main__":
                      'class_weight': [None, "balanced", {0: 1, 1: 16}, {0: 1, 1: 4}, {0: 1, 1: 3}], "random_state":[42]},
                     'scorer':make_scorer(fbeta_score, beta=4),'path':"Test_Results/SVM_Weights/"}, 
                     {'params':{'C': [0.1, 1, 10, 100], 'gamma': [1, 0.1, 0.01, 0.001], 'kernel': ['rbf', 'linear'],
-                    'class_weight': [None], "random_state": [42]}, 'scorer':make_scorer(fbeta_score, beta=4),'path':"Test_Results/SVM_No_Weights"},
+                    'class_weight': [None], "random_state": [42]}, 'scorer':make_scorer(fbeta_score, beta=4),'path':"Test_Results/SVM_No_Weights/"},
                     {'params':{"n_neighbors":[1,3,5,7,9], "weights":["uniform", "distance"], "metric":["euclidean"]},
                     'scorer':make_scorer(fbeta_score, beta=4), 'path':"Test_Results/KNN_Euclidean/"},
                     {'params':{"n_neighbors": [1, 3, 5, 7, 9], "weights": ["uniform", "distance"]},
@@ -296,11 +296,11 @@ if __name__ == "__main__":
 
     for i, argument in enumerate(arguments):
         if i==0:
-            p = mp.Process(target=GridSearchTestsSVC,  kwargs=(dict(params=argument['params'],scorer=argument['scorer'],path=argument['path'])))
+            p = mp.Process(target=GridSearchTestsSVC,  kwargs=(argument))
         elif i==1:
-            p = mp.Process(target=GridSearchTestsSVC1,  kwargs=(dict(params=argument['params'],scorer=argument['scorer'],path=argument['path'])))
+            p = mp.Process(target=GridSearchTestsSVC1,  kwargs=(argument))
         elif i==2:
-            p = mp.Process(target=GridSearchTestsKNN,  kwargs=(dict(params=argument['params'],scorer=argument['scorer'],path=argument['path'])))
+            p = mp.Process(target=GridSearchTestsKNN,  kwargs=(argument))
         elif i==3:
             p = mp.Process(target=GridSearchTestsKNN,  kwargs=(argument))
         
