@@ -100,7 +100,7 @@ def GridSearchTestsSVC(params, scorer, path, randomState=42):
     plt.savefig(f'{path}pass_CrossValidation.pdf')
     plt.savefig(f'{path}pass_CrossValidation.png')
     plt.clf()
-
+    del df
     return locals()
 
 
@@ -185,8 +185,8 @@ def GridSearchTestsSVC1(params, scorer, path, randomState=42):
     plt.title(f'F2 Score = {fbeta_score(y_test_pass, pred_test_pass, beta=2)}')
     plt.savefig(f'{path}pass_CrossValidation.pdf')
     plt.savefig(f'{path}pass_CrossValidation.png')
-    plt.clf()
-
+    plt.close()
+    del df
     return locals()
 
 def GridSearchTestsKNN(params, scorer, path, randomState=42, mahalanobis=False):
@@ -227,7 +227,7 @@ def GridSearchTestsKNN(params, scorer, path, randomState=42, mahalanobis=False):
         scoring=scorer,
         refit=True,
         verbose=1,
-        n_jobs=6
+        n_jobs=-1,
     )
 
     # Fit the parameters using GridSearchCV
@@ -252,7 +252,7 @@ def GridSearchTestsKNN(params, scorer, path, randomState=42, mahalanobis=False):
     plt.title(f'F2 Score = {fbeta_score(y_test, predictions, beta=2)}')
     plt.savefig(f'{path}after_CrossValidation.pdf')
     plt.savefig(f'{path}after_CrossValidation.png')
-    plt.clf()
+    plt.close()
 
     # Groups by passing, and then computes confusion matrix of that
     pass_test = y_test.copy()
@@ -274,14 +274,15 @@ def GridSearchTestsKNN(params, scorer, path, randomState=42, mahalanobis=False):
     plt.title(f'F2 Score = {fbeta_score(y_test_pass, pred_test_pass, beta=2)}')
     plt.savefig(f'{path}pass_CrossValidation.pdf')
     plt.savefig(f'{path}pass_CrossValidation.png')
-    plt.clf()
-
+    plt.close()
+    del df
     return locals()
 
 if __name__ == "__main__":
     # create a process for each video
     processes = []
 
+    functions = [GridSearchTestsSVC, GridSearchTestsSVC1, GridSearchTestsKNN, GridSearchTestsKNN]
     arguments = [
                     {'params':{'C': [0.1, 1, 10, 100], 'gamma': [1, 0.1, 0.01, 0.001], 'kernel': ['rbf', 'linear'],
                      'class_weight': [None, "balanced", {0: 1, 1: 16}, {0: 1, 1: 4}, {0: 1, 1: 3}], "random_state":[42]},
@@ -295,16 +296,7 @@ if __name__ == "__main__":
                     ]
 
     for i, argument in enumerate(arguments):
-        if i==0:
-            p = mp.Process(target=GridSearchTestsSVC,  kwargs=(argument))
-        elif i==1:
-            p = mp.Process(target=GridSearchTestsSVC1,  kwargs=(argument))
-        elif i==2:
-            p = mp.Process(target=GridSearchTestsKNN,  kwargs=(argument))
-        elif i==3:
-            p = mp.Process(target=GridSearchTestsKNN,  kwargs=(argument))
-        
-            
+        p = mp.Process(target=functions[i],  kwargs=(argument))  
         processes.append(p)
         p.start()
 
