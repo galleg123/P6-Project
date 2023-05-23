@@ -8,7 +8,7 @@ from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay, fbeta_scor
 from sklearn.decomposition import PCA
 from scipy.spatial.distance import mahalanobis
 import matplotlib.pyplot as plt
-
+import multiprocessing as mp
 
 # Creating a function that uses category_id to determine if a cage is present.
 def cage_detection(row):
@@ -52,7 +52,7 @@ def GridSearchTestsSVC(params, scorer, path, randomState=42):
         scoring=scorer,
         refit=True,
         verbose=1,
-        n_jobs=6
+        n_jobs=-1
     )
     
     # Fit the parameters using GridSearchCV
@@ -93,7 +93,7 @@ def GridSearchTestsSVC(params, scorer, path, randomState=42):
     pred_grouped_df = pred_cat_df.groupby(by=["frame_id"]).sum()
     pred_test_pass = pred_grouped_df.divide(pred_grouped_df).fillna(0)
 
-    cm = confusion_matrix(y_test_pass, pred_test_pass, labels=clf_svm.classes_)
+    cm = confusion_matrix(y_test_pass, pred_test_pass, labels=clf.classes_)
     passCM = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=["Is not a cage", "Is a cage"])
     passCM.plot()
     plt.title(f'F2 Score = {fbeta_score(y_test_pass, pred_test_pass, beta=2)}')
@@ -104,7 +104,7 @@ def GridSearchTestsSVC(params, scorer, path, randomState=42):
     return locals()
 
 
-def GridSearchTestsSVC(params, scorer, path, randomState=42):
+def GridSearchTestsSVC1(params, scorer, path, randomState=42):
     # Defining the different columns and features
     columns = ['video_id', 'path', 'width', 'height', 'fps', 'total_frames', 'file_name', 'category_id',
                'category_name', 'supercategory', 'color', 'metadata', 'pass_id', 'Frame', 'BoudingBox', 'Area',
@@ -138,7 +138,7 @@ def GridSearchTestsSVC(params, scorer, path, randomState=42):
         scoring=scorer,
         refit=True,
         verbose=1,
-        n_jobs=6
+        n_jobs=-1
     )
 
     # Fit the parameters using GridSearchCV
@@ -179,7 +179,7 @@ def GridSearchTestsSVC(params, scorer, path, randomState=42):
     pred_grouped_df = pred_cat_df.groupby(by=["frame_id"]).sum()
     pred_test_pass = pred_grouped_df.divide(pred_grouped_df).fillna(0)
 
-    cm = confusion_matrix(y_test_pass, pred_test_pass, labels=clf_svm.classes_)
+    cm = confusion_matrix(y_test_pass, pred_test_pass, labels=clf.classes_)
     passCM = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=["Is not a cage", "Is a cage"])
     passCM.plot()
     plt.title(f'F2 Score = {fbeta_score(y_test_pass, pred_test_pass, beta=2)}')
@@ -217,7 +217,7 @@ def GridSearchTestsKNN(params, scorer, path, randomState=42, mahalanobis=False):
 
     if(mahalanobis):
         params["metric"] = ["mahalanobis"]
-        params["metric_params"] = [{"V": np.cov(X_train)}]
+        params["metric_params"] = [{"V": np.cov(X_train_scaled, rowvar=False)}]
 
     # Do a cross validation using GridSearchCV
     optimal_params = GridSearchCV(
@@ -268,7 +268,7 @@ def GridSearchTestsKNN(params, scorer, path, randomState=42, mahalanobis=False):
     pred_grouped_df = pred_cat_df.groupby(by=["frame_id"]).sum()
     pred_test_pass = pred_grouped_df.divide(pred_grouped_df).fillna(0)
 
-    cm = confusion_matrix(y_test_pass, pred_test_pass, labels=clf_svm.classes_)
+    cm = confusion_matrix(y_test_pass, pred_test_pass, labels=clf.classes_)
     passCM = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=["Is not a cage", "Is a cage"])
     passCM.plot()
     plt.title(f'F2 Score = {fbeta_score(y_test_pass, pred_test_pass, beta=2)}')
@@ -279,19 +279,35 @@ def GridSearchTestsKNN(params, scorer, path, randomState=42, mahalanobis=False):
     return locals()
 
 if __name__ == "__main__":
-    SVC_Weights = GridSearchTestsSVC(
-                    {'C': [0.1, 1, 10, 100], 'gamma': [1, 0.1, 0.01, 0.001], 'kernel': ['rbf', 'linear'],
+    # create a process for each video
+    processes = []
+
+    arguments = [
+                    {'params':{'C': [0.1, 1, 10, 100], 'gamma': [1, 0.1, 0.01, 0.001], 'kernel': ['rbf', 'linear'],
                      'class_weight': [None, "balanced", {0: 1, 1: 16}, {0: 1, 1: 4}, {0: 1, 1: 3}], "random_state":[42]},
-                    make_scorer(fbeta_score, beta=4),
-                    "Test_Results/SVM_Weights/")
-    SVC_No_Weights = GridSearchTestsSVC(
-                                  {'C': [0.1, 1, 10, 100], 'gamma': [1, 0.1, 0.01, 0.001], 'kernel': ['rbf', 'linear'],
-                                   'class_weight': [None], "random_state": [42]},
-                                  make_scorer(fbeta_score, beta=4),
-                                  "Test_Results/SVM_No_Weights/")
-    KNN_Euclidean = GridSearchTestsKNN(
-                                    {"n_neighbors":[1,3,5,7,9], "weights":["uniform", "distance"], "metric":["euclidean"]},
-                                    make_scorer(fbeta_score, beta=4), "Test_Results/KNN_Euclidean/", mahalanobis=False)
-    KNN_Mahalanobis = GridSearchTestsKNN(
-                                    {"n_neighbors": [1, 3, 5, 7, 9], "weights": ["uniform", "distance"]},
-                                    make_scorer(fbeta_score, beta=4), "Test_Results/KNN_Mahalanobis/", mahalanobis=True)
+                    'scorer':make_scorer(fbeta_score, beta=4),'path':"Test_Results/SVM_Weights/"}, 
+                    {'params':{'C': [0.1, 1, 10, 100], 'gamma': [1, 0.1, 0.01, 0.001], 'kernel': ['rbf', 'linear'],
+                    'class_weight': [None], "random_state": [42]}, 'scorer':make_scorer(fbeta_score, beta=4),'path':"Test_Results/SVM_No_Weights"},
+                    {'params':{"n_neighbors":[1,3,5,7,9], "weights":["uniform", "distance"], "metric":["euclidean"]},
+                    'scorer':make_scorer(fbeta_score, beta=4), 'path':"Test_Results/KNN_Euclidean/"},
+                    {'params':{"n_neighbors": [1, 3, 5, 7, 9], "weights": ["uniform", "distance"]},
+                    'scorer':make_scorer(fbeta_score, beta=4), 'path':"Test_Results/KNN_Mahalanobis/", 'mahalanobis':True}
+                    ]
+
+    for i, argument in enumerate(arguments):
+        if i==0:
+            p = mp.Process(target=GridSearchTestsSVC,  kwargs=(dict(params=argument['params'],scorer=argument['scorer'],path=argument['path'])))
+        elif i==1:
+            p = mp.Process(target=GridSearchTestsSVC1,  kwargs=(dict(params=argument['params'],scorer=argument['scorer'],path=argument['path'])))
+        elif i==2:
+            p = mp.Process(target=GridSearchTestsKNN,  kwargs=(dict(params=argument['params'],scorer=argument['scorer'],path=argument['path'])))
+        elif i==3:
+            p = mp.Process(target=GridSearchTestsKNN,  kwargs=(argument))
+        
+            
+        processes.append(p)
+        p.start()
+
+    # Wait for all processes to finish
+    for p in processes:
+        p.join()
