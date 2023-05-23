@@ -11,10 +11,9 @@ if __name__ == "__main__":
     # Duration of the video in seconds
     video_duration = 3600
     # Duration of the first and last minutes to record in seconds
-    record_duration = 60
+    record_duration = 120
 
     camera = cv2.VideoCapture(1)
-
     camera.set(3, 1280)
     camera.set(4, 720)
 
@@ -42,7 +41,7 @@ if __name__ == "__main__":
         if first:
             motionDetector = motion_detector(frame,50)
             first=False
-            print(f'Frame: {camera.get(cv2.CAP_PROP_POS_FRAMES)}\n\tMotion:\tFalse\n\tCage:\tFalse\n')
+            print(f'Frame: {frame_index}\n\tMotion:\tFalse\n\tCage:\tFalse\n')
             continue
 
         if not ret:
@@ -52,17 +51,19 @@ if __name__ == "__main__":
 
         if first_minute_start <= frame_index < first_minute_end:
             # Record frames from the first minute
+            print("Recording first output")
             output_first.write(frame)
         if last_minute_start <= frame_index < last_minute_end:
             # Record frames from the last minute
+            print("Recording last output")
             output_last.write(frame)
 
         motion = motionDetector.compare_frames(frame)
         if isinstance(motion, np.ndarray):
           cage, frame = cageDetector.detect_cage(motion, frame)
-          print(f'Frame: {camera.get(cv2.CAP_PROP_POS_FRAMES)}\n\tMotion:\tTrue\n\tCage:\t{cage}\n')
+          print(f'Frame: {frame_index}\n\tMotion:\tTrue\n\tCage:\t{cage}\n')
         else:
-          print(f'Frame: {camera.get(cv2.CAP_PROP_POS_FRAMES)}\n\tMotion:\tFalse\n\tCage:\tFalse\n')
+          print(f'Frame: {frame_index}\n\tMotion:\tFalse\n\tCage:\tFalse\n')
 
         cv2.imshow("Video", frame)
         key = cv2.waitKey(100)
