@@ -2,6 +2,8 @@ import cv2
 import numpy as np
 import cProfile
 import pstats
+import pickle
+from sklearn.preprocessing import scale
 
 np.seterr(divide='ignore', invalid='ignore')
 
@@ -12,11 +14,13 @@ class cage_detector:
         self.performance = performance
         self.new_width = 640
         self.new_height = 480
-        self.cage = False
-
+        self.Weighted_SVM = pickle.load(open('classes/model/finalized_model.sav', 'rb')) # Load in the model from the disk
+                
+    
     def detect_cage(self, motion, frame):
         pr = cProfile.Profile()
         pr.enable()
+        self.cage = False
         if self.performance:
             resized_frame = self.resize_frame(motion)
         edges = self.get_edges(motion)
@@ -31,9 +35,10 @@ class cage_detector:
         # Print profiling stats
         ps = pstats.Stats(pr)
         ps.sort_stats(pstats.SortKey.TIME)
-        ps.print_stats(10)
+        ps.print_stats(30)
 
-        return self.cage, blob_img_classified
+        #return self.cage, blob_img_classified
+        return self.cage, frame
 
     def resize_frame(self, frame):
         return cv2.resize(frame, (self.new_width, self.new_height))
@@ -191,37 +196,48 @@ class cage_detector:
             min_index = size_check.index(min(size_check))
             size_check.pop(min_index)
             contours = tuple([x for i, x in enumerate(contours) if i != min_index])
+        
+        features = [[]]
         if (len(contours) == 1) and (np.average(blob_img) != 0):
             contour = contours[0]
             # Calculate the area of the contour
             area = cv2.contourArea(contour)
-
+            features[0].append(area)
+            
             # Calculate the convexhull of the contour
             hull = cv2.convexHull(contour)
 
             # Calculate the circularity of the contour
             circularity = self.circularity_calc(contour, area)
+            features[0].append(circularity)
 
             # Calculate the Eccentricity of the contour
             eccentricity = self.eccentricity_calc(contour)
+            features[0].append(eccentricity)
 
             # Calculate the elongation of the contour
             elongation = self.elongation_calc(contour)
+            features[0].append(elongation)
 
             # Calculate the convexity of the contour
             convexity = self.convexity_calc(contour, hull)
+            features[0].append(convexity)
 
             # Calculate the rectangularity of the contour
             rectangularity = self.rectangularity_rotate_calc(contour, area)
+            features[0].append(rectangularity)
 
             # Calculate the solidity of the contour
             solidity = self.solidity_calc(contour, area, hull)
+            features[0].append(solidity)
 
             # Checking if it should detect cage and create a dictionary of the parameters
             if self.testing:
-                # Insert trained model here:
-                if (area > 120000 and rectangularity > 0.7) and (area > 120000 and convexity > 0.9):
-                    self.cage = True
+                #print(features)
+                scaled_features = scale(features)
+                #print(scaled_features)
+                self.cage = bool(self.Weighted_SVM.predict(scaled_features)[0])
+                #print(self.cage)
 
                 params_dict = {"Area": area, "Circularity": circularity,
                                "Eccentricity": eccentricity, "Elongation": elongation,
