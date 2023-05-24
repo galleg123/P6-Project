@@ -110,13 +110,12 @@ class FeatureExtraction:
 		else:
 			return None
 
-	def convexity(self, contour, mask):
+	def convexity(self, contour, hull):
 		"""
 		Calculate the convexity of the contour
 		"""
 		try:
 			perimeter = cv2.arcLength(contour, True)
-			hull = cv2.convexHull(contour)
 			hull_perimeter = cv2.arcLength(hull, True)
 			return hull_perimeter / perimeter
 		except cv2.error:
@@ -163,21 +162,17 @@ class FeatureExtraction:
 			print("Error: Failed to compute eccentricity for contour")
 			return None
 
-	def solidity(self, area, mask):
+	def solidity(self, contour, area ,hull):
 		"""
 		Calculate the solidity of the contour
 		"""
-		if area > 0:
-			indices = np.transpose(np.nonzero(mask))
-			if indices.size > 0:
-				try:
-					hull = cv2.convexHull(indices)
-					if len(hull) > 0:
-						hull_area = cv2.contourArea(hull)
-						return area / hull_area
-				except cv2.error:
-					pass
-					return None
+		try :
+			hull_area = cv2 . contourArea ( hull )
+			return area / hull_area
+		
+		except cv2 . error :
+			print ( " Error : Failed to compute solidity for contour " )
+			return None
 
 	def videoWorker(self,video):
 		self.semaphore.acquire()
@@ -260,6 +255,7 @@ class FeatureExtraction:
 															{'f': self.solidity, 'a': args},									
 													 	]
 									# Run functions to extract each feature and appending it to row
+									hull = cv2.convexHull(contours[0])
 									for i, function in enumerate(feature_functions):
 										if i ==0:
 											boundingBox = function['f'](*function['a'])
@@ -276,15 +272,15 @@ class FeatureExtraction:
 										elif (i == 2) or (i == 4):
 											row.append(function['f'](*function['a'], actual_area))
 										elif (i == 3):
-											row.append(function['f'](*function['a'], mask))
+											row.append(function['f'](*function['a'], hull))
 										elif i == 7:
-											row.append(function['f'](actual_area, mask))
+											row.append(function['f'](*function['a'], actual_area, hull))
 										else:
 											row.append(function['f'](*function['a']))
 									if annotate:
-										print(row)
+										#print(row)
 										video_annotations.append(row)
-						pass_id_counter += 1
+							pass_id_counter += 1
 					# If there is no annotations for this category 
 					else:
 						category_dict = next(item for item in self.categories if item["id"] == i)
@@ -320,9 +316,19 @@ class FeatureExtraction:
 			for row in video:
 				csv_writer.writerow(row)
 		
-		subprocess.run(["bash", "-c", "sort -t',' -k1,1n -k8,8n -k13,13n featuresExtracted.csv > featuresExtractedSorted.csv"])
-		
-		with open('featuresExtractedSorted.csv', 'rt') as f:
+		subprocess.run([
+		    "bash",
+		    "-c",
+		    "head -n 1 Extracted_Features/featuresExtracted.csv > Extracted_Features/featuresExtractedSorted.csv"
+		])
+
+		subprocess.run([
+		    "bash",
+		    "-c",
+		    "tail -n +2 Extracted_Features/featuresExtracted.csv | sort -t',' -k1,1n -k8,8n -k13,13n >> Extracted_Features/featuresExtractedSorted.csv"
+		])
+		subprocess.run(["ls"])
+		with open('Extracted_Features/featuresExtractedSorted.csv', 'rt') as f:
 			reader = csv.reader(f)
 			self.dataframe = pd.DataFrame(reader)
 		self.dataframe.columns = self.dataframe.iloc[0]
@@ -344,5 +350,5 @@ class FeatureExtraction:
 		people_df.to_csv('Extracted_Features/peopleExtracted.csv', index = False)
 
 if __name__=="__main__":
-	FeatureExtractor = FeatureExtraction('annotated_data.json')
+	FeatureExtractor = FeatureExtraction('dataset/annotated_data.json')
 	FeatureExtractor.run()

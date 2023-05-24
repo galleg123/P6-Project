@@ -27,7 +27,7 @@ def GridSearchTestsSVCweighted(params, scorer, path, randomState=42):
     features = ['Area', 'Circularity', 'Convexity', 'Rectangularity', 'Elongation', 'Eccentricity', 'Solidity']
 
     # Import csv with all data
-    df = pd.read_csv('featuresExtracted_no_touchy_noDoubleFrames.csv', usecols=columns)
+    df = pd.read_csv('Extracted_Features/featuresExtractedSorted_noDoubleFrames.csv', usecols=columns)
 
     # Make a new cage column that applies the function to each row
     df['Cage'] = df.apply(lambda row: cage_detection(row), axis=1)
@@ -125,7 +125,7 @@ def GridSearchTestsSVC(params, scorer, path, randomState=42):
     features = ['Area', 'Circularity', 'Convexity', 'Rectangularity', 'Elongation', 'Eccentricity', 'Solidity']
 
     # Import csv with all data
-    df = pd.read_csv('featuresExtracted_no_touchy_noDoubleFrames.csv', usecols=columns)
+    df = pd.read_csv('Extracted_Features/featuresExtractedSorted_noDoubleFrames.csv', usecols=columns)
 
     # Make a new cage column that applies the function to each row
     df['Cage'] = df.apply(lambda row: cage_detection(row), axis=1)
@@ -217,7 +217,7 @@ def GridSearchTestsKNN(params, scorer, path, randomState=42, mahalanobis=False):
     features = ['Area', 'Circularity', 'Convexity', 'Rectangularity', 'Elongation', 'Eccentricity', 'Solidity']
 
     # Import csv with all data
-    df = pd.read_csv('featuresExtracted_no_touchy_noDoubleFrames.csv', usecols=columns)
+    df = pd.read_csv('Extracted_Features/featuresExtractedSorted_noDoubleFrames.csv', usecols=columns)
 
     # Make a new cage column that applies the function to each row
     df['Cage'] = df.apply(lambda row: cage_detection(row), axis=1)
