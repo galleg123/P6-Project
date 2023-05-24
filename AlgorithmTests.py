@@ -1,6 +1,6 @@
 import pandas as pd
 import numpy as np
-from sklearn.preprocessing import scale
+from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.svm import SVC
 from sklearn.neighbors import KNeighborsClassifier
@@ -40,11 +40,13 @@ def GridSearchTestsSVCweighted(params, scorer, path, randomState=42):
 
     # Prepare test data
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=randomState)
+    scaler = StandardScaler().fit(X_train)
 
     # Scale test data
-    X_train_scaled = scale(X_train)
-    X_test_scaled = scale(X_test)
-    
+    print(X_train[:5])
+    X_train_scaled = scaler.transform(X_train)
+    X_test_scaled = scaler.transform(X_test)
+    print(X_train_scaled[:5])
     # Do a cross validation using GridSearchCV
     optimal_params = GridSearchCV(
         SVC(),
@@ -105,7 +107,11 @@ def GridSearchTestsSVCweighted(params, scorer, path, randomState=42):
     # Save the model
     filename = f'{path}finalized_model.sav'
     pickle.dump(clf, open(filename, 'wb'))
+    # Save the model
+    filename = f'{path}finalized_scaler.sav'
+    pickle.dump(scaler, open(filename, 'wb'))
     plt.close()
+
     
     del df
     return locals()
@@ -132,10 +138,11 @@ def GridSearchTestsSVC(params, scorer, path, randomState=42):
 
     # Prepare test data
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=randomState)
+    scaler = StandardScaler().fit(X_train)
 
     # Scale test data
-    X_train_scaled = scale(X_train)
-    X_test_scaled = scale(X_test)
+    X_train_scaled = scaler.transform(X_train)
+    X_test_scaled = scaler.transform(X_test)
 
     # Do a cross validation using GridSearchCV
     optimal_params = GridSearchCV(
@@ -192,8 +199,13 @@ def GridSearchTestsSVC(params, scorer, path, randomState=42):
     plt.title(f'F4 Score = {fbeta_score(y_test_pass, pred_test_pass, beta=4)}')
     plt.savefig(f'{path}pass_CrossValidation.pdf')
     plt.savefig(f'{path}pass_CrossValidation.png')
-    
-   
+    # Save the model
+    filename = f'{path}finalized_model.sav'
+    pickle.dump(clf, open(filename, 'wb'))
+    # Save the model
+    filename = f'{path}finalized_scaler.sav'
+    pickle.dump(scaler, open(filename, 'wb'))
+    plt.close()
     del df
     return locals()
 
@@ -218,10 +230,11 @@ def GridSearchTestsKNN(params, scorer, path, randomState=42, mahalanobis=False):
 
     # Prepare test data
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=randomState)
-
+    scaler = StandardScaler().fit(X_train)
+    
     # Scale test data
-    X_train_scaled = scale(X_train)
-    X_test_scaled = scale(X_test)
+    X_train_scaled = scaler.transform(X_train)
+    X_test_scaled = scaler.transform(X_test)
 
     if(mahalanobis):
         params["metric"] = ["mahalanobis"]
@@ -283,6 +296,12 @@ def GridSearchTestsKNN(params, scorer, path, randomState=42, mahalanobis=False):
     plt.savefig(f'{path}pass_CrossValidation.pdf')
     plt.savefig(f'{path}pass_CrossValidation.png')
     plt.close()
+    # Save the model
+    filename = f'{path}finalized_model.sav'
+    pickle.dump(clf, open(filename, 'wb'))
+    # Save the model
+    filename = f'{path}finalized_scaler.sav'
+    pickle.dump(scaler, open(filename, 'wb'))
     del df
     return locals()
 
