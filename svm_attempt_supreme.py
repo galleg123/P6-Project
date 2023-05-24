@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+import pickle
 from sklearn.preprocessing import scale
 from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.svm import SVC
@@ -107,8 +108,8 @@ plt.clf()
 '''
 # Uses the best estimator from grid search to predict test data
 #clf_svm = optimal_params.best_estimator_
-#clf_svm = SVC(random_state=42, C=1, class_weight={0:1, 1:3}, gamma=1, kernel="rbf")
-clf_svm = SVC(random_state=42, C=10, gamma=1, kernel="rbf")
+clf_svm = SVC(random_state=42, C=10, class_weight={0:1, 1:16}, gamma=0.1, kernel="rbf")
+#clf_svm = SVC(random_state=42, C=10, gamma=1, kernel="rbf")
 clf_svm.fit(X_train_scaled, y_train)
 predictions = clf_svm.predict(X_test_scaled)
 cm = confusion_matrix(y_test, predictions, labels=clf_svm.classes_)
@@ -140,3 +141,9 @@ plt.title(f'F2 Score = {fbeta_score(y_test_pass, pred_test_pass, beta=2)}')
 plt.savefig('pass_CrossValidation.pdf')
 plt.savefig('pass_CrossValidation.png')
 plt.clf()
+
+# Save the model
+path="Test_Results/SVM_No_Weights/"
+filename = f'{path}finalized_model.sav'
+pickle.dump(clf_svm, open(filename, 'wb'))
+plt.close()
