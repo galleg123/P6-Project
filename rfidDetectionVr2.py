@@ -3,6 +3,8 @@ import numpy as np
 from classes.motionDetection_v2 import motion_detector
 from classes.cageDetection import cage_detector
 import time
+import cProfile
+import pstats
 
 if __name__ == "__main__":
 
@@ -13,7 +15,9 @@ if __name__ == "__main__":
     # Duration of the first and last minutes to record in seconds
     record_duration = 120
 
-    camera = cv2.VideoCapture(1)
+    
+    #camera = cv2.VideoCapture(0)
+    camera = cv2.VideoCapture(0)
     camera.set(3, 1280)
     camera.set(4, 720)
 
@@ -37,18 +41,24 @@ if __name__ == "__main__":
     first = True
     cageDetector = cage_detector()
     while True:
+        #pr = cProfile.Profile()
+        #pr.enable()
         ret, frame = camera.read()
         if first:
             motionDetector = motion_detector(frame,50)
             first=False
             print(f'Frame: {frame_index}\n\tMotion:\tFalse\n\tCage:\tFalse\n')
+            frame_index += 1
             continue
-
+            
         if not ret:
             break
-
+        
+        
+        if frame_index%3==1:
+            frame_index += 1
+            continue
         print("--- %s seconds ---" % (time.time() - start_time))
-
         if first_minute_start <= frame_index < first_minute_end:
             # Record frames from the first minute
             print("Recording first output")
@@ -57,16 +67,16 @@ if __name__ == "__main__":
             # Record frames from the last minute
             print("Recording last output")
             output_last.write(frame)
-
+        
         motion = motionDetector.compare_frames(frame)
         if isinstance(motion, np.ndarray):
-          cage, frame = cageDetector.detect_cage(motion, frame)
-          print(f'Frame: {frame_index}\n\tMotion:\tTrue\n\tCage:\t{cage}\n')
+          cage, frame, blob = cageDetector.detect_cage(motion, frame)
+          print(f'Frame: {frame_index/2}\n\tMotion:\tTrue\n\tCage:\t{cage}\n')
         else:
-          print(f'Frame: {frame_index}\n\tMotion:\tFalse\n\tCage:\tFalse\n')
-
+          print(f'Frame: {frame_index/2}\n\tMotion:\tFalse\n\tCage:\tFalse\n')
+        key = cv2.waitKey(1)
         cv2.imshow("Video", frame)
-        key = cv2.waitKey(100)
+        cv2.imshow("BLOB", blob )
         if key == ord('q'):
             break
         # check if 'p' was pressed and wait for a 'b' press
@@ -100,7 +110,11 @@ if __name__ == "__main__":
             break
 
         frame_index += 1
-
+        #pr.disable()
+        # Print profiling stats
+        #ps = pstats.Stats(pr)
+        #ps.sort_stats(pstats.SortKey.TIME)
+        #ps.print_stats(30)
     # Release the video capture and writer objects
     camera.release()
     output_first.release()

@@ -1,10 +1,11 @@
 import cv2
 import numpy as np
+import pickle
+from sklearn.preprocessing import StandardScaler
+from sklearn.svm import SVC
+from sklearn.utils.validation import check_is_fitted
 import cProfile
 import pstats
-import pickle
-from sklearn.preprocessing import scale
-
 np.seterr(divide='ignore', invalid='ignore')
 
 
@@ -15,7 +16,8 @@ class cage_detector:
         self.new_width = 640
         self.new_height = 480
         self.Weighted_SVM = pickle.load(open('classes/model/finalized_model.sav', 'rb')) # Load in the model from the disk
-                
+        self.scaler = pickle.load(open('classes/model/finalized_scaler.sav', 'rb'))
+    
     def detect_cage(self, motion, frame):
         pr = cProfile.Profile()
         pr.enable()
@@ -35,9 +37,8 @@ class cage_detector:
         ps = pstats.Stats(pr)
         ps.sort_stats(pstats.SortKey.TIME)
         ps.print_stats(30)
-
-        #return self.cage, blob_img_classified
-        return self.cage, frame
+        return self.cage, frame, blob_img_classified
+        #return self.cage, 
 
     def resize_frame(self, frame):
         return cv2.resize(frame, (self.new_width, self.new_height))
@@ -67,10 +68,10 @@ class cage_detector:
 
         # Erode the dilated image to remove single pixels
         eroded = cv2.erode(dilated, kernel1)
-
+        #opened_img = cv2.morphologyEx(img, cv2.MORPH_OPEN, kernel1)
         # Apply morphological opening operation
         opened_img = cv2.morphologyEx(eroded, cv2.MORPH_OPEN, kernel)
-
+        #dilated = cv2.dilate(opened_img, kernel)
         return opened_img
 
     def blob_detection(self, img):
@@ -196,48 +197,51 @@ class cage_detector:
             size_check.pop(min_index)
             contours = tuple([x for i, x in enumerate(contours) if i != min_index])
         
-        features = [[]]
+        features = []
         if (len(contours) == 1) and (np.average(blob_img) != 0):
             contour = contours[0]
             # Calculate the area of the contour
             area = cv2.contourArea(contour)
-            features[0].append(area)
+            features.append(area/(1280*720))
             
             # Calculate the convexhull of the contour
             hull = cv2.convexHull(contour)
 
             # Calculate the circularity of the contour
             circularity = self.circularity_calc(contour, area)
-            features[0].append(circularity)
+            features.append(circularity)
 
             # Calculate the Eccentricity of the contour
             eccentricity = self.eccentricity_calc(contour)
-            features[0].append(eccentricity)
+            features.append(eccentricity)
 
             # Calculate the elongation of the contour
             elongation = self.elongation_calc(contour)
-            features[0].append(elongation)
+            features.append(elongation)
 
             # Calculate the convexity of the contour
             convexity = self.convexity_calc(contour, hull)
-            features[0].append(convexity)
+            features.append(convexity)
 
             # Calculate the rectangularity of the contour
             rectangularity = self.rectangularity_rotate_calc(contour, area)
-            features[0].append(rectangularity)
+            features.append(rectangularity)
 
             # Calculate the solidity of the contour
             solidity = self.solidity_calc(contour, area, hull)
-            features[0].append(solidity)
+            features.append(solidity)
 
             # Checking if it should detect cage and create a dictionary of the parameters
             if self.testing:
-                #print(features)
-                scaled_features = scale(features)
-                #print(scaled_features)
-                self.cage = bool(self.Weighted_SVM.predict(scaled_features)[0])
-                #print(self.cage)
-
+                print(features)
+                scaled_features = self.scaler.transform([features])
+                print(scaled_features)
+                #print(self.Weighted_SVM.check_is_fitted(self, 'support_'))
+                self.cage = self.Weighted_SVM.predict(scaled_features)[0]
+                if self.cage != 1:
+                    print(self.cage)
+                self.cage = bool(self.cage)
+                print(self.cage)
                 params_dict = {"Area": area, "Circularity": circularity,
                                "Eccentricity": eccentricity, "Elongation": elongation,
                                "Convexity": convexity, "Rectangularity": rectangularity,

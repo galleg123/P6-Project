@@ -2,13 +2,21 @@ import cv2
 import numpy as np
 from classes.motionDetection_v2 import motion_detector
 from classes.cageDetection import cage_detector
+import cProfile
+import pstats
 
 if __name__ == "__main__":
-    input_video = 'dataset/cages/cage1_red_empty.avi'
-    camera = cv2.VideoCapture(input_video)
+    #input_video = 'cage1_red_empty.avi'
+    #input_video = 'people_with_hvis_control.avi'
+    camera = cv2.VideoCapture(0)
+    camera.set(3, 1280)
+    camera.set(4, 720)
+    camera.set(cv2.CAP_PROP_FPS, 10)
     first = True
     cageDetector = cage_detector()
     while True:
+        pr = cProfile.Profile()
+        pr.enable()
         ret, frame = camera.read()
         if first:
             motionDetector = motion_detector(frame,50)
@@ -18,16 +26,18 @@ if __name__ == "__main__":
 
         if not ret:
             break
-
+            
+        key = cv2.waitKey(1)
         motion = motionDetector.compare_frames(frame)
         if isinstance(motion, np.ndarray):
-          cage, frame = cageDetector.detect_cage(motion, frame)
+          cage, frame, blob  = cageDetector.detect_cage(motion, frame)
           print(f'Frame: {camera.get(cv2.CAP_PROP_POS_FRAMES)}\n\tMotion:\tTrue\n\tCage:\t{cage}\n')
+          cv2.imshow("blob", blob)
         else:
           print(f'Frame: {camera.get(cv2.CAP_PROP_POS_FRAMES)}\n\tMotion:\tFalse\n\tCage:\tFalse\n')
-
-        cv2.imshow(f'{input_video}', frame)
-        key = cv2.waitKey(100)
+        cv2.imshow(f'coolio     ',frame)
+        #cv2.imshow(f'{input_video}', frame)
+        
         if key == ord('q'):
             break
         # check if 'p' was pressed and wait for a 'b' press
@@ -56,3 +66,8 @@ if __name__ == "__main__":
 
                 if key == ord('q'):
                     break
+        pr.disable()
+        # Print profiling stats
+        ps = pstats.Stats(pr)
+        ps.sort_stats(pstats.SortKey.TIME)
+        #ps.print_stats(30)
