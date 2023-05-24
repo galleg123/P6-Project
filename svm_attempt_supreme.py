@@ -33,12 +33,13 @@ X = df[features]
 y = df['Cage']
 
 # Prepare test data
-X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=42)
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
 # Scale test data
 X_train_scaled = scale(X_train)
 X_test_scaled = scale(X_test)
-
+#X_train_scaled = X_train
+#X_test_scaled = X_test
 
 # Create a Support Vector Classifier (SVC) with preset parameters
 clf_svm = SVC(random_state=42)
@@ -59,9 +60,9 @@ before.plot()
 plt.savefig('before_CrossValidation.pdf')
 plt.savefig('before_CrossValidation.png')
 plt.clf()
-
+'''
 # Write down test attempts for the different parameter (I found these specific ones online)
-param_grid = {'C': [0.1,1, 10, 100], 'gamma': [1,0.1,0.01,0.001],'kernel': ['rbf', 'linear'], 'class_weight': [None, "balanced", {0:1, 1:3}]}
+param_grid = {'C': [0.1,1, 10, 100], 'gamma': [1,0.1,0.01,0.001],'kernel': ['rbf', 'linear'], 'class_weight': [None, "balanced", {0:1, 1:16}, {0:1,1:4}, {0:1, 1:3}]}
 #param_grid = {'C': [10], 'gamma': [1],'kernel': ['rbf'], 'class_weight': [None, "balanced", {0:1, 1:3}]}
 
 f2_scorer = make_scorer(fbeta_score, beta=2)
@@ -83,7 +84,7 @@ optimal_params.fit(X_train_scaled, y_train)
 
 # Print the optimal parameters
 print(optimal_params.best_params_)
-
+'''
 '''
 # Try making a SVC with the new parameters provided by the CV
 clf_svm = SVC(random_state=42, C=optimal_params.best_params_['C'], gamma=optimal_params.best_params_['gamma'], kernel=optimal_params.best_params_['kernel'])
@@ -105,15 +106,17 @@ plt.savefig('mahalanobis_distances.pdf')
 plt.clf()
 '''
 # Uses the best estimator from grid search to predict test data
-clf_svm = optimal_params.best_estimator_
+#clf_svm = optimal_params.best_estimator_
 #clf_svm = SVC(random_state=42, C=1, class_weight={0:1, 1:3}, gamma=1, kernel="rbf")
-#clf_svm.fit(X_train_scaled, y_train)
+clf_svm = SVC(random_state=42, C=10, gamma=1, kernel="rbf")
+clf_svm.fit(X_train_scaled, y_train)
 predictions = clf_svm.predict(X_test_scaled)
 cm = confusion_matrix(y_test, predictions, labels=clf_svm.classes_)
 
 # Display new confusion matrix
 after = ConfusionMatrixDisplay(confusion_matrix=cm,display_labels=["Is not a cage","Is a cage"])
 after.plot()
+plt.title(f'F2 Score = {fbeta_score(y_test, predictions, beta=2)}')
 plt.savefig('after_CrossValidation.pdf')
 plt.savefig('after_CrossValidation.png')
 plt.clf()
@@ -133,6 +136,7 @@ pred_test_pass = pred_grouped_df.divide(pred_grouped_df).fillna(0)
 cm = confusion_matrix(y_test_pass, pred_test_pass, labels=clf_svm.classes_)
 passCM = ConfusionMatrixDisplay(confusion_matrix=cm,display_labels=["Is not a cage","Is a cage"])
 passCM.plot()
+plt.title(f'F2 Score = {fbeta_score(y_test_pass, pred_test_pass, beta=2)}')
 plt.savefig('pass_CrossValidation.pdf')
 plt.savefig('pass_CrossValidation.png')
 plt.clf()
