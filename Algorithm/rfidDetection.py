@@ -2,8 +2,8 @@ import cv2
 import numpy as np
 from classes.motionDetection_v2 import motion_detector
 from classes.cageDetection import cage_detector
-import cProfile
-import pstats
+import time
+import csv
 
 if __name__ == "__main__":
     #input_video = 'cage1_red_empty.avi'
@@ -14,14 +14,18 @@ if __name__ == "__main__":
     camera.set(cv2.CAP_PROP_FPS, 10)
     first = True
     cageDetector = cage_detector()
+    csv_file_path = "time_taking.csv"
+    frame_counter = 0
     while True:
-        pr = cProfile.Profile()
-        pr.enable()
+        # Measure main code runtime
+        main_start_time = time.time()
+
         ret, frame = camera.read()
         if first:
             motionDetector = motion_detector(frame,50)
             first=False
             print(f'Frame: {camera.get(cv2.CAP_PROP_POS_FRAMES)}\n\tMotion:\tFalse\n\tCage:\tFalse\n')
+            frame_counter +=1
             continue
 
         if not ret:
@@ -66,8 +70,40 @@ if __name__ == "__main__":
 
                 if key == ord('q'):
                     break
-        pr.disable()
-        # Print profiling stats
-        ps = pstats.Stats(pr)
-        ps.sort_stats(pstats.SortKey.TIME)
-        #ps.print_stats(30)
+        main_end_time = time.time()
+        main_runtime = main_end_time - main_start_time
+        with open(csv_file_path, 'r') as file:
+            reader = csv.reader(file)
+            data = list(reader)
+
+        main_column = -1
+        if data and "main" in data[0]:
+            main_column = data[0].index("main")
+        
+        if main_column == -1:
+            # Add "main" column
+            data[0].append("main")
+            main_column = len(data[0]) - 1
+        
+        if len(data) == 1:
+            # If there is only one row, add a new row with the runtime values
+            data.append([None] * len(data[0]))
+            data[-1][main_column] = main_runtime
+        else:
+            # If there are existing rows, update the last row with the runtime values
+            last_row_index = len(data) - 1
+            if len(data[last_row_index]) <= main_column:
+                # If the "main" column doesn't exist in the last row, append it
+                data[last_row_index].append(main_runtime)
+            else:
+                # Otherwise, modify the existing value
+                data[last_row_index][main_column] = main_runtime
+
+        # Write the modified data back to the CSV file
+        with open(csv_file_path, 'w', newline='') as file:
+            writer = csv.writer(file)
+            writer.writerows(data)
+
+        frame_counter += 1
+        if frame_counter == 1000:
+            break

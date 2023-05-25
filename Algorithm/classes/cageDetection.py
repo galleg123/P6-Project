@@ -4,8 +4,8 @@ import pickle
 from sklearn.preprocessing import StandardScaler
 from sklearn.svm import SVC
 from sklearn.utils.validation import check_is_fitted
-import cProfile
-import pstats
+import time
+import csv
 np.seterr(divide='ignore', invalid='ignore')
 
 
@@ -19,8 +19,8 @@ class cage_detector:
         self.scaler = pickle.load(open('classes/model/finalized_scaler.sav', 'rb'))
     
     def detect_cage(self, motion, frame):
-        pr = cProfile.Profile()
-        pr.enable()
+        csv_file_path = "time_taking.csv"
+        cage_start_time = time.time()
         self.cage = False
         if self.performance:
             resized_frame = self.resize_frame(motion)
@@ -32,11 +32,40 @@ class cage_detector:
         if params_dicts and self.testing:
             blob_img_classified = self.detected_cage(blob_img_classified, params_dicts)
             frame = self.detected_cage(frame, params_dicts)
-        pr.disable()
-        # Print profiling stats
-        ps = pstats.Stats(pr)
-        ps.sort_stats(pstats.SortKey.TIME)
-        ps.print_stats(30)
+        cage_end_time = time.time()
+        cage_detector_runtime = cage_end_time - cage_start_time
+        with open(csv_file_path, 'r') as file:
+            reader = csv.reader(file)
+            data = list(reader)
+
+        cage_detector_column = -1
+        if data and "cage_detector" in data[0]:
+            cage_detector_column = data[0].index("cage_detector")
+        
+        if cage_detector_column == -1:
+            # Add "cage_detector" column
+            data[0].append("cage_detector")
+            cage_detector_column = len(data[0]) - 1
+        
+        if len(data) == 1:
+            # If there is only one row, add a new row with the runtime values
+            data.append([None] * len(data[0]))
+            data[-1][cage_detector_column] = cage_detector_runtime
+        else:
+            # If there are existing rows, update the last row with the runtime values
+            last_row_index = len(data) - 1
+            if len(data[last_row_index]) <= cage_detector_column:
+                # If the "cage_detector" column doesn't exist in the last row, append it
+                data[last_row_index].append(cage_detector_runtime)
+            else:
+                # Otherwise, modify the existing value
+                data[last_row_index][cage_detector_column] = cage_detector_runtime
+
+        # Write the modified data back to the CSV file
+        with open(csv_file_path, 'w', newline='') as file:
+            writer = csv.writer(file)
+            writer.writerows(data)
+
         return self.cage, frame, blob_img_classified
         #return self.cage, 
 
@@ -149,7 +178,6 @@ class cage_detector:
     def solidity_calc(self, contour, area, hull):
         """Calculate the solidity of the contour"""
         try:
-            #hull = cv2.convexHull(contour)
             hull_area = cv2.contourArea(hull)
             return area / hull_area
         except cv2.error:
