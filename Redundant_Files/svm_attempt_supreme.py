@@ -22,7 +22,7 @@ columns = ['video_id','path','width','height','fps','total_frames','file_name','
 features = ['Area', 'Circularity', 'Convexity', 'Rectangularity', 'Elongation', 'Eccentricity', 'Solidity']
 
 # Import csv with all data
-df = pd.read_csv('featuresExtracted_no_touchy_noDoubleFrames.csv', usecols=columns)
+df = pd.read_csv('featuresExtractedSorted_noDoubleFrames.csv', usecols=columns)
 
 # Make a new cage column that applies the function to each row
 df['Cage'] = df.apply (lambda row: cage_detection(row), axis=1)
@@ -148,10 +148,10 @@ plt.savefig('pass_CrossValidation.png')
 plt.clf()
 
 # Save the model
-path="Test_Results/SVM_No_Weights/"
-filename = f'{path}finalized_model.sav'
-pickle.dump(clf_svm, open(filename, 'wb'))
-plt.close()
+#path="Test_Results/SVM_No_Weights/"
+#filename = f'{path}finalized_model.sav'
+#pickle.dump(clf_svm, open(filename, 'wb'))
+#plt.close()
 
 X_scaled = scaler.transform(X)
 
