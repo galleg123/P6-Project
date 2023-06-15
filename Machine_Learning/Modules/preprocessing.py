@@ -92,8 +92,10 @@ class Preprocessing:
         cv2.destroyAllWindows()
 
 if __name__ == "__main__":
-    input_video_path = 'cages/cage1_red_empty.avi'
+    #input_video_path = 'cages/cage1_red_empty.avi'
     #input_video_path = 'dataset/people/people_with_hvis_control.avi'
+    #input_video_path = '../dataset/cages/cage1_red_empty.avi'
+    input_video_path = 'Machine_Learning/Modules/cage1_red_empty.avi'
     preprocessing = Preprocessing(input_video_path,52)
     # Display the frame
     cv2.imshow('Frame', preprocessing.frame)

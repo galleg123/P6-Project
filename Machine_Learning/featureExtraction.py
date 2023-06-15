@@ -350,5 +350,5 @@ class FeatureExtraction:
 		people_df.to_csv('Extracted_Features/peopleExtracted.csv', index = False)
 
 if __name__=="__main__":
-	FeatureExtractor = FeatureExtraction('dataset/annotated_data.json')
+	FeatureExtractor = FeatureExtraction('annotated_data.json')
 	FeatureExtractor.run()
