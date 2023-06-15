@@ -1,6 +1,5 @@
 import cv2
 import numpy as np
-import matplotlib.pyplot as plt
 
 np.seterr(divide='ignore', invalid='ignore')
 
@@ -67,8 +66,8 @@ class Preprocessing:
         closed_img2 = cv2.morphologyEx(frame_threshold2, cv2.MORPH_CLOSE, kernel2)
         opened_img2 = cv2.morphologyEx(closed_img2, cv2.MORPH_OPEN, kernel22)
         self.frame = np.zeros((720, 1280), dtype=np.uint8)
-        print(f"{y}:{y+h}, {x}:{x+w}")
-        print(np.shape(self.frame), np.shape(opened_img2))
+        #print(f"{y}:{y+h}, {x}:{x+w}")
+        #print(np.shape(self.frame), np.shape(opened_img2))
         self.frame[y:y+h, x:x+w] = opened_img2
 
         # blob_img, mask = self._blob_detection(edges)

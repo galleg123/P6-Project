@@ -9,7 +9,7 @@ from io import BytesIO
 from csv import writer 
 import csv
 import subprocess
-from Modules.preprocessing import Preprocessing
+from Modules.preprocessing_newer import Preprocessing
 
 
 class FeatureExtraction:
@@ -21,7 +21,7 @@ class FeatureExtraction:
 		self.annotations = []
 		self.video_columns = []
 		self.category_columns = []
-		self.features = ["pass_id","Frame", "BoudingBox","Area","Circularity","Convexity","Rectangularity", "Elongation","Eccentricity","Solidity"]
+		self.features = ["pass_id","Frame", "BoudingBox","Area","Circularity","Convexity","Rectangularity", "Elongation","Eccentricity","Solidity","COMx","COMy"]
 		self.columns = self.video_columns+self.category_columns+self.features
 		self.dataframe = None
 		self.num_processes = mp.cpu_count()
@@ -173,6 +173,17 @@ class FeatureExtraction:
 		except cv2 . error :
 			print ( " Error : Failed to compute solidity for contour " )
 			return None
+	
+	def COM(self, contour):
+		try:
+			m = cv2.moments(contour)
+			cx = int(m["m10"] / m["m00"])
+			cy = int(m["m01"] / m["m00"])
+			return (cx, cy)
+		except cv2 . error :
+			print ( " Error : Failed to compute center of mass for contour " )
+			return None
+
 
 	def videoWorker(self,video):
 		self.semaphore.acquire()
@@ -252,7 +263,8 @@ class FeatureExtraction:
 															{'f': self.rectangularity, 'a': args},
 															{'f': self.elongation, 'a': args},
 															{'f': self.eccentricity, 'a': args},
-															{'f': self.solidity, 'a': args},									
+															{'f': self.solidity, 'a': args},
+															{'f': self.COM, 'a': args}									
 													 	]
 									# Run functions to extract each feature and appending it to row
 									hull = cv2.convexHull(contours[0])
@@ -275,6 +287,11 @@ class FeatureExtraction:
 											row.append(function['f'](*function['a'], hull))
 										elif i == 7:
 											row.append(function['f'](*function['a'], actual_area, hull))
+										elif i == 8:
+											COM = function['f'](*function['a'])
+											row.append(COM[0], COM[1])
+										elif i==9:
+											continue
 										else:
 											row.append(function['f'](*function['a']))
 									if annotate:
@@ -335,7 +352,7 @@ class FeatureExtraction:
 		self.dataframe = self.dataframe[1:]
 		
 		# Check for duplicate frames, i.e. where both a cage and a person is within the frame
-		subset_cols = ['Frame','BoudingBox','Area','Circularity','Convexity','Rectangularity','Elongation','Eccentricity','Solidity']
+		subset_cols = ['Frame','BoudingBox','Area','Circularity','Convexity','Rectangularity','Elongation','Eccentricity','Solidity','COMx, COMy']
 		self.dataframe = self.dataframe.drop_duplicates(subset=subset_cols, keep='first')
 
 		# Save the new csv file with no doublicates
