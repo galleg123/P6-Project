@@ -289,9 +289,8 @@ class FeatureExtraction:
 											row.append(function['f'](*function['a'], actual_area, hull))
 										elif i == 8:
 											COM = function['f'](*function['a'])
-											row.append(COM[0], COM[1])
-										elif i==9:
-											continue
+											row.append(COM[0])
+											row.append(COM[1])
 										else:
 											row.append(function['f'](*function['a']))
 									if annotate:
