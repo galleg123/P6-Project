@@ -13,6 +13,11 @@ plt.plot(range(len(file1)), file1.iloc[:, 1], label='5 Features')
 plt.plot(range(len(file2)), file2.iloc[:, 1], label='7 Features')
 plt.xlabel('Frame', fontsize=20)
 plt.ylabel('Execution time', fontsize=20)
+
+# Add dashed lines and labels
+plt.axhline(y=0.1, color='red', linestyle='dashed', label='10 FPS')
+plt.axhline(y=0.5, color='blue', linestyle='dashed', label='2 FPS')
+
 plt.legend(fontsize=16)
 plt.xticks(fontsize=16)
 plt.yticks(fontsize=16)
