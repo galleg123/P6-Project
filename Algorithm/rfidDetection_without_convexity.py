@@ -14,7 +14,8 @@ if __name__ == "__main__":
     camera.set(cv2.CAP_PROP_FPS, 10)
     first = True
     cageDetector = cage_detector()
-    csv_file_path = "time_taking.csv"
+    #csv_file_path = "time_taking.csv"
+    csv_file_path = "time_taking_no_convex.csv"
     frame_counter = 0
     while True:
         # Measure main code runtime
@@ -26,15 +27,22 @@ if __name__ == "__main__":
             first=False
             print(f'Frame: {camera.get(cv2.CAP_PROP_POS_FRAMES)}\n\tMotion:\tFalse\n\tCage:\tFalse\n')
             frame_counter +=1
+            with open(csv_file_path, "w") as file:
+                file.write("motion_detector,main,cage_detector\n")
             continue
 
         if not ret:
             break
             
         key = cv2.waitKey(1)
+        motion_start_time = time.time()
         motion = motionDetector.compare_frames(frame)
+        motion_end_time = time.time()
+        detector_start_time = None
         if isinstance(motion, np.ndarray):
+          detector_start_time = time.time()
           cage, frame, blob  = cageDetector.detect_cage(motion, frame)
+          detector_end_time = time.time()
           print(f'Frame: {camera.get(cv2.CAP_PROP_POS_FRAMES)}\n\tMotion:\tTrue\n\tCage:\t{cage}\n')
           cv2.imshow("blob", blob)
         else:
@@ -72,6 +80,10 @@ if __name__ == "__main__":
                     break
         main_end_time = time.time()
         main_runtime = main_end_time - main_start_time
+        motion_runtime = motion_end_time - motion_start_time
+        if detector_start_time is None: detector_runtime = ""
+        else: detector_runtime = detector_end_time - detector_start_time
+        """
         with open(csv_file_path, 'r') as file:
             reader = csv.reader(file)
             data = list(reader)
@@ -103,6 +115,9 @@ if __name__ == "__main__":
         with open(csv_file_path, 'w', newline='') as file:
             writer = csv.writer(file)
             writer.writerows(data)
+        """
+        with open(csv_file_path, "a") as file:
+            file.write(f"{motion_runtime},{main_runtime},{detector_runtime}\n")
 
         frame_counter += 1
         if frame_counter == 1000:
