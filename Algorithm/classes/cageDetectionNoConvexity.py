@@ -233,7 +233,7 @@ class cage_detector:
             features.append(area/(1280*720))
             
             # Calculate the convexhull of the contour
-            hull = cv2.convexHull(contour)
+            #hull = cv2.convexHull(contour)
 
             # Calculate the circularity of the contour
             circularity = self.circularity_calc(contour, area)
